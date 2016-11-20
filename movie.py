@@ -3,12 +3,6 @@ import numpy as np
 from sklearn.preprocessing import Imputer
 from sklearn import metrics
 
-from sklearn.linear_model import LogisticRegression
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-from sklearn import linear_model
-from sklearn.neighbors import KNeighborsRegressor
 
 movies = pd.read_table("movie_metadata.csv", sep=",")
 
@@ -18,7 +12,8 @@ cols = cols[:8]+cols[9:]+['gross']
 movies = movies[cols]
 
 # Impute missing data
-fill = pd.Series([movies[c].value_counts().index[0]
+#fill = pd.Series([movies[c].value_counts().index[0] #most common value
+fill = pd.Series(["Missing" #create new label
 	if movies[c].dtype == np.dtype('O')
 	else movies[c].mean()
 	for c in movies], index=movies.columns)
@@ -26,16 +21,45 @@ movies = movies.fillna(fill)
 
 # separate into X and Y
 X = movies.drop('gross', axis=1)
+X_num = movies[[c for c in movies if movies[c].dtype != np.dtype('O')]]
+X_str = movies[[c for c in movies if movies[c].dtype == np.dtype('O')]]
 Y = movies['gross']
 
-"""
-# algorithm
+
+# PCA
+from sklearn.decomposition import PCA
+n = 2 # number of components we want
+pca = PCA(n_components=n)
+pca.fit(X_num)
+print pca.components_
+print pca.explained_variance_
+print pca.explained_variance_ratio_
+
+
+# KNN Classification
+from sklearn.neighbors import KNeighborsClassifier
 k = 3 # Can be changed to any integer > 0
 algo = KNeighborsClassifier(n_neighbors=k)
-algo.fit(X, Y)
-hypotheses = algo.predict(test_x)
-print "MSE: %.3f (k = %d)" % (metrics.mean_squared_error(test_y, hypotheses), k)
-"""
+algo.fit(X_num, Y)
+#hypotheses = algo.predict(test_x)
+#print "MSE: %.3f (k = %d)" % (metrics.mean_squared_error(test_y, hypotheses), k)
+
+
+# Logit
+from sklearn.linear_model import LogisticRegression
+
+
+# LDA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+
+
+# QDA
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+
+
+# KNN Regression
+from sklearn.neighbors import KNeighborsRegressor
+
 
 """
 
