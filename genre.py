@@ -4,6 +4,8 @@ from collections import Counter
 import random
 import time
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 
 start = time.time()
 
@@ -113,21 +115,102 @@ def knn(train_X, train_Y, test_X, test_Y, num):
             bestpred = pred
     return (1 - bestrate), bestk, bestpred
 
+def logistic(train_X, train_Y, test_X, test_Y):
+    logreg = LogisticRegression()
+    logreg.fit(train_X, train_Y)
+    pred = logreg.predict(test_X)
+    rate = checkpred(test_Y, pred)
+    return (1 - rate), pred
+
+def lindisc(train_X, train_Y, test_X, test_Y):
+    lda = LinearDiscriminantAnalysis()
+    lda.fit(train_X, train_Y)
+    pred = lda.predict(test_X)
+    rate = checkpred(test_Y, pred)
+    return (1 - rate), pred
+
+def quadpred(train_X, train_Y, test_X, test_Y):
+    qda = QuadraticDiscriminantAnalysis()
+    qda.fit(train_X, train_Y)
+    pred = qda.predict(test_X)
+    rate = checkpred(test_Y, pred)
+    return (1 - rate), pred
+
+
+failrates = []
+
 knnstart = time.time()
 
-failrate, topk, pred = knn(X_train, Y_train, X_test, Y_test, 19)
+failrate, topk, knnpred = knn(X_train, Y_train, X_test, Y_test, 19)
+
+failrates.append(failrate)
 
 print '\n--------------------------\n'
 
-print 'Misclassification rate is ' + str(failrate) + ' for ' + str(topk) + ' neighbors'
+print 'Misclassification rate: ' + str(failrate) + ' for ' + str(topk) + ' neighbors\n'
 
 knnend = time.time()
-
-print '\n--------------------------\n'
 
 print 'Time for KNN: ' + str(knnend - knnstart) + ' seconds'
 
 print '\n--------------------------\n'
 
+logstart = time.time()
+
+failrate, logpred = logistic(X_train, Y_train, X_test, Y_test)
+
+failrates.append(failrate)
+
+logend = time.time()
+
+print 'Misclassification rate: ' + str(failrate) + '\n'
+
+print 'Time for Logistic Regression: ' + str(logend - logstart) + ' seconds'
+
+print '\n--------------------------\n'
+
+LDAstart = time.time()
+
+failrate, LDApred = lindisc(X_train, Y_train, X_test, Y_test)
+
+failrates.append(failrate)
+
+LDAend = time.time()
+
+print 'Misclassification rate: ' + str(failrate) + '\n'
+
+print 'Time for Linear Discriminant Analysis: ' +str(LDAend - LDAstart) + ' seconds'
+
+print '\n--------------------------\n'
+
+QDAstart = time.time()
+
+failrate, QDApred = quadpred(X_train, Y_train, X_test, Y_test)
+
+QDAend = time.time()
+
+print 'Misclassification rate: ' + str(failrate) + '\n'
+
+print 'Time for Quadratic Discriminant Analysis: ' + str(QDAend - QDAstart) + ' seconds'
+
+print '\n--------------------------\n'
+
+best = np.argmin(failrates)
+
+if best == 0:
+    bestpred = knnpred
+    print 'KNN wins'
+elif best == 1:
+    bestpred = logpred
+    print 'Logistic Regression wins'
+elif best == 2:
+    bestpred = LDApred
+    print 'LDA wins'
+elif best == 3:
+    bestpred = QDApred
+    print 'QDA wins'
+else:
+    print 'Yikes'
+
 for i in range(len(Y_test)):
-    print titles_test[i] + ' - Actual: ' + Y_test[i] + ' | Predicted: ' + pred[i]
+    print titles_test[i] + ' - Actual: ' + Y_test[i] + ' | Predicted: ' + bestpred[i]
