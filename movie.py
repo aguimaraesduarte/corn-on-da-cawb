@@ -2,6 +2,9 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import Imputer
 from sklearn import metrics
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 
 movies = pd.read_table("movie_metadata.csv", sep=",")
@@ -28,10 +31,27 @@ Y = movies['gross']
 
 # PCA
 from sklearn.decomposition import PCA
-n = 2 # number of components we want
+n = 3 # number of components we want
 pca = PCA(n_components=n)
 pca.fit(X_num)
-print pca.components_
+X2 = pca.transform(X_num)
+pca_components = pca.components_
+ax0 = pca_components[0]
+ax1 = pca_components[1]
+ax2 = pca_components[2]
+movies_index = np.array(Y.index)
+
+movie_comp0 = [(f, X_str['movie_title'][i]) for f,i in zip(ax0, movies_index)]
+movie_comp1 = [(f, X_str['movie_title'][i]) for f,i in zip(ax1, movies_index)]
+movie_comp2 = [(f, X_str['movie_title'][i]) for f,i in zip(ax2, movies_index)]
+
+plt.figure(figsize=(15,15))
+plt.scatter(ax0, ax1)
+for i, x, y in zip(movies_index, ax0, ax2):
+	plt.text(x, y, X_str['movie_title'][i], color=np.random.rand(3)*0.7, fontsize=14)
+
+plt.show()
+
 print pca.explained_variance_
 print pca.explained_variance_ratio_
 
