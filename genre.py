@@ -13,6 +13,9 @@ movielist = []
 
 keycounter = Counter()
 
+genrecounter = Counter()
+rawgenrecounter = Counter()
+
 with open('movie_metadata.csv', 'r') as movies:
     moviereader = csv.reader(movies)
     i = 0
@@ -20,33 +23,65 @@ with open('movie_metadata.csv', 'r') as movies:
         i += 1
         title = unicode(line[11], encoding = 'utf-8').replace(u'\xa0', ' ').rstrip()
         genres = line[9]
+        rawgenrecounter[genres] += 1
         keywords = line[16]
         if i > 1:
             genreset = set(genres.split('|'))
-            # print genreset
-            if len(set(['Documentary', 'Biography','Game-Show','Reality-TV','News']) & genreset) > 0:
-                genre = 'True'
-            elif len(set(['Crime','Mystery','Thriller','Film-Noir']) & genreset) > 0:
-                genre = 'Thriller'
-            elif len(set(['Sci-Fi','Fantasy','Adventure','Animation']) & genreset) > 0:
-                genre = 'Fantasy'
-            elif 'Horror' in genreset:
-                genre = 'Horror'
-            elif len(set(['Action', 'Western', 'War']) & genreset) > 0:
-                genre = 'Action'
+            if len(genreset) == 1:
+                if len(set(['Documentary', 'Biography','Game-Show','Reality-TV','News']) & genreset) > 0:
+                    genre = 'True'
+                elif len(set(['Crime','Mystery','Thriller','Film-Noir']) & genreset) > 0:
+                    genre = 'Thriller'
+                elif len(set(['Sci-Fi','Fantasy','Adventure','Animation']) & genreset) > 0:
+                    genre = 'Fantasy'
+                elif 'Horror' in genreset:
+                    genre = 'Horror'
+                elif len(set(['Action', 'Western', 'War']) & genreset) > 0:
+                    genre = 'Action'
+                elif len(set(['Drama', 'Romance', 'History']) & genreset) > 0:
+                    genre = 'Drama'
+                elif len(set(['Comedy', 'Music', 'Musical', 'Family']) & genreset) > 0:
+                    genre = 'Comedy'
+                else:
+                    genre = 'Unknown'
             else:
-                genre = 'General'
+                if len(set(['Documentary', 'Biography','Game-Show','Reality-TV','News']) & genreset) > 0:
+                    genre = 'True'
+                elif 'Horror' in genreset:
+                    genre = 'Horror'
+                elif len(set(['Sci-Fi','Fantasy']) & genreset) > 0:
+                    genre = 'Fantasy'
+                elif len(set(['Western', 'War']) & genreset) > 0:
+                    genre = 'Action'
+                elif 'Thriller' in genreset:
+                    genre = 'Thriller'
+                elif 'Action' in genreset:
+                    genre = 'Action'
+                elif len(set(['Animation', 'Family']) & genreset) > 0:
+                    genre = 'Comedy'
+                elif 'Drama' in genreset and 'Comedy' not in genreset:
+                    genre = 'Drama'
+                elif 'Comedy' in genreset and 'Drama' not in genreset:
+                    genre = 'Comedy'
+                elif len(set(['Drama','Romance', 'History']) & genreset) > 0:
+                    genre = 'Drama'
+                else:
+                    genre = 'Other'
+            genrecounter[genre] += 1
             keylist = keywords.split('|')
-            movielist.append([title, genre, keylist])
+            movielist.append([title, genre, keylist, list(genreset)])
             for key in keylist:
                 keycounter[key] += 1
+
+print genrecounter
+#print rawgenrecounter
 
 i = 0
 
 keyfeat = []
 
 for item in keycounter:
-    if keycounter[item] > 10:
+    if keycounter[item] > 5:
         i += 1
         # print i
         # print item + ': ' + str(keycounter[item])
@@ -136,7 +171,7 @@ def quadpred(train_X, train_Y, test_X, test_Y):
     rate = checkpred(test_Y, pred)
     return (1 - rate), pred
 
-
+'''
 failrates = []
 
 knnstart = time.time()
@@ -152,14 +187,14 @@ print 'Misclassification rate: ' + str(failrate) + ' for ' + str(topk) + ' neigh
 knnend = time.time()
 
 print 'Time for KNN: ' + str(knnend - knnstart) + ' seconds'
-
+'''
 print '\n--------------------------\n'
 
 logstart = time.time()
 
 failrate, logpred = logistic(X_train, Y_train, X_test, Y_test)
 
-failrates.append(failrate)
+# failrates.append(failrate)
 
 logend = time.time()
 
@@ -168,7 +203,7 @@ print 'Misclassification rate: ' + str(failrate) + '\n'
 print 'Time for Logistic Regression: ' + str(logend - logstart) + ' seconds'
 
 print '\n--------------------------\n'
-
+'''
 LDAstart = time.time()
 
 failrate, LDApred = lindisc(X_train, Y_train, X_test, Y_test)
@@ -211,6 +246,19 @@ elif best == 3:
     print 'QDA wins'
 else:
     print 'Yikes'
+'''
+
+metavalid = 0
+
+bestpred = logpred
 
 for i in range(len(Y_test)):
     print titles_test[i] + ' - Actual: ' + Y_test[i] + ' | Predicted: ' + bestpred[i]
+    # print test[i]
+    if bestpred[i] != Y_test[i] and bestpred[i] in test[i][3]:
+        print 'Prediction in description'
+        metavalid += 1
+
+print 'Exact match rate: ' + str(1- failrate)
+print 'Obscured prediction rate: ' + str(float(metavalid)/len(Y_test))           # predictions that did not match the bucket but did match a
+                                                                                 # genre in the original description
