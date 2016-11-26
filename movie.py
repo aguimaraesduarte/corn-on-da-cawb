@@ -1,10 +1,11 @@
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import Imputer
 from sklearn import metrics
 import sys
+import matplotlib.pyplot as plt
 reload(sys)
 sys.setdefaultencoding('utf8')
+from sklearn import preprocessing
 
 
 movies = pd.read_table("movie_metadata.csv", sep=",")
@@ -28,119 +29,39 @@ X_num = movies[[c for c in movies if movies[c].dtype != np.dtype('O')]]
 X_str = movies[[c for c in movies if movies[c].dtype == np.dtype('O')]]
 Y = movies['gross']
 
+# scale data
+X_num_scaled = preprocessing.scale(X_num)
 
 # PCA
 from sklearn.decomposition import PCA
 n = 3 # number of components we want
 pca = PCA(n_components=n)
-pca.fit(X_num)
-X2 = pca.transform(X_num)
+pca.fit(X_num_scaled)
+X2 = pca.transform(X_num_scaled)
 pca_components = pca.components_
-ax0 = pca_components[0]
-ax1 = pca_components[1]
-ax2 = pca_components[2]
 movies_index = np.array(Y.index)
 
-movie_comp0 = [(f, X_str['movie_title'][i]) for f,i in zip(ax0, movies_index)]
-movie_comp1 = [(f, X_str['movie_title'][i]) for f,i in zip(ax1, movies_index)]
-movie_comp2 = [(f, X_str['movie_title'][i]) for f,i in zip(ax2, movies_index)]
+ax1 = 1
+ax2 = 2
+max_movies = min(500, len(X2))
+plt.figure()
+for i, a in zip(movies_index[:max_movies], X2[:max_movies]):
+	r = np.random.rand(3)*0.7
+	plt.scatter(a[ax1], a[ax2], color=r)
+	plt.text(a[ax1], a[ax2], X_str['movie_title'][i], color=r, fontsize=8)
 
-plt.figure(figsize=(15,15))
-plt.scatter(ax0, ax1)
-for i, x, y in zip(movies_index, ax0, ax2):
-	plt.text(x, y, X_str['movie_title'][i], color=np.random.rand(3)*0.7, fontsize=14)
-
+plt.xlim((min([a[ax1] for a in X2[:max_movies]]), max([a[ax1] for a in X2[:max_movies]])))
+plt.ylim((min([a[ax2] for a in X2[:max_movies]]), max([a[ax2] for a in X2[:max_movies]])))
+plt.xlabel('PCA Axis 0')
+plt.ylabel('PCA Axis 2')
 plt.show()
 
-print pca.explained_variance_
-print pca.explained_variance_ratio_
+from mpl_toolkits.mplot3d import Axes3D
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+for i, a in zip(movies_index[:max_movies], X2[:max_movies]):
+	r = np.random.rand(3)*0.7
+	ax.scatter(a[0], a[1], a[2], color=r)
+	ax.text(a[0], a[1], a[2], X_str['movie_title'][i], fontsize=8, color=r)
 
-
-# KNN Classification
-from sklearn.neighbors import KNeighborsClassifier
-k = 3 # Can be changed to any integer > 0
-algo = KNeighborsClassifier(n_neighbors=k)
-algo.fit(X_num, Y)
-#hypotheses = algo.predict(test_x)
-#print "MSE: %.3f (k = %d)" % (metrics.mean_squared_error(test_y, hypotheses), k)
-
-
-# Logit
-from sklearn.linear_model import LogisticRegression
-
-
-# LDA
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-
-
-# QDA
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-
-
-# KNN Regression
-from sklearn.neighbors import KNeighborsRegressor
-
-
-"""
-
-# reshape data into separate columns
-color = movies['color'].reshape(-1,1)
-director_name = movies['director_name'].reshape(-1,1)
-num_critic_for_reviews = movies['num_critic_for_reviews'].reshape(-1,1)
-duration = movies['duration'].reshape(-1,1)
-director_facebook_likes = movies['director_facebook_likes'].reshape(-1,1)
-actor_3_facebook_likes = movies['actor_3_facebook_likes'].reshape(-1,1)
-actor_2_name = movies['actor_2_name'].reshape(-1,1)
-actor_1_facebook_likes = movies['actor_1_facebook_likes'].reshape(-1,1)
-genres = movies['genres'].reshape(-1,1)
-actor_1_name = movies['actor_1_name'].reshape(-1,1)
-movie_title = movies['movie_title'].reshape(-1,1)
-num_voted_users = movies['num_voted_users'].reshape(-1,1)
-cast_total_facebook_likes = movies['cast_total_facebook_likes'].reshape(-1,1)
-actor_3_name = movies['actor_3_name'].reshape(-1,1)
-facenumber_in_poster = movies['facenumber_in_poster'].reshape(-1,1)
-plot_keywords = movies['plot_keywords'].reshape(-1,1)
-movie_imdb_link = movies['movie_imdb_link'].reshape(-1,1)
-num_user_for_reviews = movies['num_user_for_reviews'].reshape(-1,1)
-language = movies['language'].reshape(-1,1)
-country = movies['country'].reshape(-1,1)
-content_rating = movies['content_rating'].reshape(-1,1)
-budget = movies['budget'].reshape(-1,1)
-title_year = movies['title_year'].reshape(-1,1)
-actor_2_facebook_likes = movies['actor_2_facebook_likes'].reshape(-1,1)
-imdb_score = movies['imdb_score'].reshape(-1,1)
-aspect_ratio = movies['aspect_ratio'].reshape(-1,1)
-movie_facebook_likes = movies['movie_facebook_likes'].reshape(-1,1)
-gross = movies['gross'].reshape(-1,1)
-
-# perform imputation on missing data
-imp = Imputer(missing_values=np.nan, strategy='mean', axis=0)
-#color = imp.fit_transform(color)
-#director_name = imp.fit_transform(director_name)
-num_critic_for_reviews = imp.fit_transform(num_critic_for_reviews)
-duration = imp.fit_transform(duration)
-director_facebook_likes = imp.fit_transform(director_facebook_likes)
-actor_3_facebook_likes = imp.fit_transform(actor_3_facebook_likes)
-#actor_2_name = imp.fit_transform(actor_2_name)
-actor_1_facebook_likes = imp.fit_transform(actor_1_facebook_likes)
-#genres = imp.fit_transform(genres)
-#actor_1_name = imp.fit_transform(actor_1_name)
-#movie_title = imp.fit_transform(movie_title)
-num_voted_users = imp.fit_transform(num_voted_users)
-cast_total_facebook_likes = imp.fit_transform(cast_total_facebook_likes)
-#actor_3_name = imp.fit_transform(actor_3_name)
-facenumber_in_poster = imp.fit_transform(facenumber_in_poster)
-#plot_keywords = imp.fit_transform(plot_keywords)
-#movie_imdb_link = imp.fit_transform(movie_imdb_link)
-num_user_for_reviews = imp.fit_transform(num_user_for_reviews)
-#language = imp.fit_transform(language)
-#country = imp.fit_transform(country)
-#content_rating = imp.fit_transform(content_rating)
-budget = imp.fit_transform(budget)
-title_year = imp.fit_transform(title_year)
-actor_2_facebook_likes = imp.fit_transform(actor_2_facebook_likes)
-imdb_score = imp.fit_transform(imdb_score)
-#aspect_ratio = imp.fit_transform(aspect_ratio)
-movie_facebook_likes = imp.fit_transform(movie_facebook_likes)
-gross = imp.fit_transform(gross)
-"""
+plt.show()
