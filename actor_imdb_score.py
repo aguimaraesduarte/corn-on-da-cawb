@@ -27,3 +27,25 @@ def actor_imdb_score(input_list):
 	return actor_name, mean_score
 
 test_actor_name, test_mean_score  = actor_imdb_score(actors)
+
+
+#--------------------------------------#
+# AVERAGE DIRECTOR SCORE			   #
+#--------------------------------------#
+
+directors = np.array(list(set(movies['director_name'])))
+directors = directors[directors != 'nan']
+
+def director_imdb_score(input_list):
+	director_name = []
+	mean_score = []
+
+	for i in input_list:
+		data_all = movies.loc[movies['director_name'] == i,'imdb_score']
+
+		director_name += [i]
+		mean_score += [data_all.mean()]
+
+	return director_name, mean_score
+
+test_director_name, test_mean_score  = director_imdb_score(directors)
