@@ -2,6 +2,13 @@ import pandas as pd
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+from sklearn import tree
+import pydotplus
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+from scipy.stats import pearsonr
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
 from collections import Counter
 from sklearn.preprocessing import Imputer
 from sklearn import metrics
@@ -15,25 +22,53 @@ cols = movies.columns.tolist()
 cols = cols[:8]+cols[9:]+['gross']
 movies = movies[cols]
 
-movies[1:10]
 movies['log_gross'] = np.log(movies['gross'])
 movies['log_budget'] = np.log(movies['budget'])
 
-print movies['log_gross'].iloc[1:10]
-print movies['gross'].iloc[1:10]
+movies['movie_title'] = movies['movie_title'].apply(lambda x: x.replace('\xc2\xa0',''))
+
+
+# Impute missing data
+#fill = pd.Series([movies[c].value_counts().index[0] #most common value
+fill = pd.Series(["Missing" #create new label
+	if movies[c].dtype == np.dtype('O')
+	else movies[c].mean()
+	for c in movies], index=movies.columns)
+movies = movies.fillna(fill)
+#
+# # separate into X and Y
+# X = movies.drop('gross', axis=1)
+# X_num = movies[[c for c in movies if movies[c].dtype != np.dtype('O')]]
+# X_str = movies[[c for c in movies if movies[c].dtype == np.dtype('O')]]
+# Y = movies['gross']
+
 #--------------------------------------#
 # PLOT DATA							   #
 #--------------------------------------#
+plot_df = movies.select_dtypes(include=[np.number])
+
 plt.figure()
-plt.scatter(np.log(movies['budget']), np.log(movies['gross']), color = 'black')
-plt.scatter(movies['budget'], movies['gross'], color = 'black')
-plt.scatter(movies['title_year'],movies['gross'])
-plt.hist(movies['title_year'].astype(float).dropna())
+# plt.scatter(np.log(movies['budget']), np.log(movies['gross']), color = 'black')
+plt.scatter(movies['title_year'], np.log(movies['gross']), color = 'black')
 plt.show()
 
-plt.scatter(movies['title_year'],movies['movie_facebook_likes'])
-test = movies['title_year'].astype(float)
-Counter(movies['title_year'])
+plt.figure()
+plt.scatter(movies['title_year'], movies['gross'], color = 'black')
+plt.show()
+
+plt.figure()
+plt.plot(movies['gross'], color = 'black', linestyle='None', marker='o')
+# plt.scatter(movies['budget'], movies['gross'], color = 'black')
+# plt.scatter(movies['title_year'],movies['gross'])
+# plt.hist(movies['title_year'].astype(float).dropna())
+plt.show()
+
+print pd.scatter_matrix(plot_df)
+print plot_df.columns
+# plt.scatter(movies['title_year'],movies['movie_facebook_likes'])
+# test = movies['title_year'].astype(float)
+# Counter(movies['title_year'])
+
 
 
 #--------------------------------------#
@@ -64,7 +99,13 @@ def actor_imdb_score(input_list):
 	return actor_name, mean_score
 
 test_actor_name, test_mean_score  = actor_imdb_score(actors)
+actor_df = pd.DataFrame({'actor_name':test_actor_name, 'actor_imdb_score' : test_mean_score})
 
+# -- Merge Actor Data back to original data frame
+movies = movies.merge(actor_df, left_on='actor_1_name', right_on='actor_name', how='left')
+movies = movies.merge(actor_df, left_on='actor_2_name', right_on='actor_name', how='left', suffixes=('_1','_2'))
+movies = movies.merge(actor_df, left_on='actor_3_name', right_on='actor_name', how='left')
+movies.drop(['actor_name_1','actor_name_2', 'actor_name'],1)
 
 #--------------------------------------#
 # AVERAGE DIRECTOR SCORE			   #
@@ -85,28 +126,125 @@ def director_imdb_score(input_list):
 
 	return director_name, mean_score
 
-test_director_name, test_mean_score  = director_imdb_score(actors)
-z = [i for i in range(len(test_director_name)) if test_director_name[i] == 'James Cameron']
-test_mean_score[z[0]]
+test_director_name, test_mean_score  = director_imdb_score(directors)
+director_df = pd.DataFrame({'director_name':test_director_name, 'director_imdb_score' : test_mean_score})
+movies = movies.merge(director_df, on='director_name', how='left')
 
-#------------CHECKS-------------------------#
-x = [t for t in test_actor_name if t == 'Orlando Bloom']
-z = [i for i in range(len(test_actor_name)) if test_actor_name[i] == 'Orlando Bloom']
-test_mean_score[z[0]]
 
-# Impute missing data
-#fill = pd.Series([movies[c].value_counts().index[0] #most common value
-fill = pd.Series(["Missing" #create new label
-	if movies[c].dtype == np.dtype('O')
-	else movies[c].mean()
-	for c in movies], index=movies.columns)
-movies = movies.fillna(fill)
+# #------------CHECKS-------------------------#
+# z = [i for i in range(len(test_director_name)) if test_director_name[i] == 'James Cameron']
+# test_mean_score[z[0]]
+# x = [t for t in test_actor_name if t == 'Orlando Bloom']
+# z = [i for i in range(len(test_actor_name)) if test_actor_name[i] == 'Orlando Bloom']
+# test_mean_score[z[0]]
 
-# separate into X and Y
-X = movies.drop('gross', axis=1)
-X_num = movies[[c for c in movies if movies[c].dtype != np.dtype('O')]]
-X_str = movies[[c for c in movies if movies[c].dtype == np.dtype('O')]]
-Y = movies['gross']
+
+#--------------------------------------#
+# 0/1 ENCODING ACTOR NAMES   	       #
+#--------------------------------------#
+
+
+all_actors = []
+for i in range(len(movies['actor_1_name'])):
+	all_actors += [[movies['actor_1_name'][i], movies['actor_2_name'][i], movies['actor_3_name'][i]]]
+
+all_actors = pd.Series(all_actors)
+
+for a in actors:
+	z = all_actors.apply( lambda x: int(a in x))
+	movies[a] = z
+
+# -------- CHECK -------------------------------------#
+# movies[movies['movie_title'] == 'Spectre'].nonzero()
+# df.ix[:, (df == 0).all()]
+#
+# spectre = movies[movies['movie_title'] == 'Spectre']
+# for i in range(len(spectre.columns)):
+# 	if (spectre.iloc[:,i] !=0).all():
+# 		print spectre.iloc[:,i]
+# -------- CHECK -------------------------------------#
+
+#--------------------------------------#
+# 0/1 ENCODING ACTOR NAMES   	       #
+#--------------------------------------#
+
+train, test = train_test_split(movies, test_size=0.3, random_state=0)
+train.shape
+test.shape
+
+train_Y = train['gross']
+train_X = train.drop(['gross','log_gross'], axis=1).select_dtypes(include=[np.number])
+
+test_Y = test['gross']
+test_X = test.drop(['gross','log_gross'], axis=1).select_dtypes(include=[np.number])
+
+
+def model_good(pred_Y_train, pred_Y_test):
+	# Test MSE
+	test_mse = mean_squared_error(test_Y, pred_Y_test)
+	train_mse = mean_squared_error(train_Y, pred_Y_train)
+
+	# Rsquared
+	test_r2 = pearsonr(test_Y, pred_Y_test)[0] ** 2
+	train_r2 = pearsonr(train_Y, pred_Y_train)[0] ** 2
+
+	print "Test MSE:", test_mse, "Train MSE:", train_mse
+	print test_mse / train_mse
+	print "Test R2:", test_r2, "Train R2:", train_r2
+
+def make_a_tree(model):
+	dot_data = tree.export_graphviz(model, out_file=None,
+									feature_names=train_X.columns.values,
+									filled=True, rounded=True,
+									special_characters=True)
+	graph = pydotplus.graph_from_dot_data(dot_data)
+	graph.write_pdf('tree.pdf')
+
+# -----------------------------------------------------------------#
+# DECISION TREE													   #
+# -----------------------------------------------------------------#
+
+
+
+depth = 5 # Note that depth, not alpha, is the hyperparameter
+regressor = DecisionTreeRegressor(max_depth=depth)
+regressor.fit(train_X, train_Y)
+pred_train_Y = regressor.predict(train_X)
+predicted_Y = regressor.predict(test_X)
+
+
+
+#Look At Tree
+
+model_good(pred_train_Y, predicted_Y)
+make_a_tree(regressor)
+
+def clean_feat_importance(model):
+	feat_importance = pd.Series(model.feature_importances_)
+	feat_name = pd.Series(train_X.columns.values)
+	feat_import = pd.DataFrame({'feature': feat_name, 'import':feat_importance})
+	print feat_import.sort('import')
+# -----------------------------------------------------------------#
+# RANDOM FOREST												   #
+# -----------------------------------------------------------------#
+
+
+estimators = 10 # Number of estimators, defaults to 10
+# for i in range(1,10):
+forest = RandomForestRegressor(n_estimators=estimators, max_depth=4, oob_score=True)
+forest.fit(train_X, train_Y)
+
+pred_train_Y = forest.predict(train_X)
+predicted_Y = forest.predict(test_X)
+
+print "Max Depth =", i
+print "Forest OOB score", 	forest.oob_score_
+print clean_feat_importance(forest)
+# model_good(pred_train_Y, predicted_Y)
+
+make_a_tree(forest)
+
+forest.estimators_ #List of Trees
 
 
 # PCA
