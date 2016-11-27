@@ -13,7 +13,7 @@ from collections import Counter
 from sklearn.preprocessing import Imputer
 from sklearn import metrics
 
-os.chdir('/Users/Brigit/Documents/0_USF/2_Fall_Module/621_ML1/Group Project/corn-on-da-cawb')
+#os.chdir('/Users/Brigit/Documents/0_USF/2_Fall_Module/621_ML1/Group Project/corn-on-da-cawb')
 
 movies = pd.read_table("movie_metadata.csv", sep=",")
 
