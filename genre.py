@@ -7,6 +7,71 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 
+def extract(list, keywords):
+    titles = []
+    X = []
+    Y = []
+    for item in list:
+        titles.append(item[0])
+        features = []
+        for key in keywords:
+            if key in item[2]:
+                val = 1
+            else:
+                val = 0
+            features.append(val)
+        X.append(features)
+        Y.append(item[1])
+    X = np.array(X)
+    Y = np.array(Y).T
+    return titles, X, Y
+
+
+def checkpred(obs, pred):
+    num = len(obs)
+    true = 0
+    for i in range(num):
+        if obs[i] == pred[i]:
+            true += 1
+    return float(true)/num
+
+def knn(train_X, train_Y, test_X, test_Y, num):
+    bestk = 0
+    bestrate = 0.0
+    bestpred = []
+    for i in range(1,num):
+        knnclass = KNeighborsClassifier(n_neighbors = i)
+        knnclass.fit(train_X, train_Y)
+        pred = knnclass.predict(test_X)
+        rate = checkpred(test_Y, pred)
+        if rate > bestrate:
+            bestk = i
+            bestrate = rate
+            bestpred = pred
+    return (1 - bestrate), bestk, bestpred
+
+def logistic(train_X, train_Y, test_X, test_Y):
+    logreg = LogisticRegression()
+    logreg.fit(train_X, train_Y)
+    pred = logreg.predict(test_X)
+    rate = checkpred(test_Y, pred)
+    return (1 - rate), pred
+
+def lindisc(train_X, train_Y, test_X, test_Y):
+    lda = LinearDiscriminantAnalysis()
+    lda.fit(train_X, train_Y)
+    pred = lda.predict(test_X)
+    rate = checkpred(test_Y, pred)
+    return (1 - rate), pred
+
+def quadpred(train_X, train_Y, test_X, test_Y):
+    qda = QuadraticDiscriminantAnalysis()
+    qda.fit(train_X, train_Y)
+    pred = qda.predict(test_X)
+    rate = checkpred(test_Y, pred)
+    return (1 - rate), pred
+
+
 start = time.time()
 
 movielist = []
@@ -73,8 +138,8 @@ with open('movie_metadata.csv', 'r') as movies:
             for key in keylist:
                 keycounter[key] += 1
 
-print genrecounter
-#print rawgenrecounter
+# print genrecounter
+# print rawgenrecounter
 
 i = 0
 
@@ -93,83 +158,19 @@ random.shuffle(movielist)
 
 # print movielist
 
-def extract(list, keywords):
-    titles = []
-    X = []
-    Y = []
-    for item in list:
-        titles.append(item[0])
-        features = []
-        for key in keywords:
-            if key in item[2]:
-                val = 1
-            else:
-                val = 0
-            features.append(val)
-        X.append(features)
-        Y.append(item[1])
-    X = np.array(X)
-    Y = np.array(Y).T
-    return titles, X, Y
-
-
 train = movielist[:-len(movielist)/10]
 test = movielist[-len(movielist)/10:]
 
 titles_train, X_train, Y_train = extract(train, keyfeat)
 titles_test, X_test, Y_test = extract(test, keyfeat)
 
-print titles_train
-print X_train
-print Y_train
+# print titles_train
+# print X_train
+# print Y_train
 
 end = time.time()
 
 print 'Feature extraction: ' + str(end - start) + ' seconds'
-
-def checkpred(obs, pred):
-    num = len(obs)
-    true = 0
-    for i in range(num):
-        if obs[i] == pred[i]:
-            true += 1
-    return float(true)/num
-
-def knn(train_X, train_Y, test_X, test_Y, num):
-    bestk = 0
-    bestrate = 0.0
-    bestpred = []
-    for i in range(1,num):
-        knnclass = KNeighborsClassifier(n_neighbors = i)
-        knnclass.fit(train_X, train_Y)
-        pred = knnclass.predict(test_X)
-        rate = checkpred(test_Y, pred)
-        if rate > bestrate:
-            bestk = i
-            bestrate = rate
-            bestpred = pred
-    return (1 - bestrate), bestk, bestpred
-
-def logistic(train_X, train_Y, test_X, test_Y):
-    logreg = LogisticRegression()
-    logreg.fit(train_X, train_Y)
-    pred = logreg.predict(test_X)
-    rate = checkpred(test_Y, pred)
-    return (1 - rate), pred
-
-def lindisc(train_X, train_Y, test_X, test_Y):
-    lda = LinearDiscriminantAnalysis()
-    lda.fit(train_X, train_Y)
-    pred = lda.predict(test_X)
-    rate = checkpred(test_Y, pred)
-    return (1 - rate), pred
-
-def quadpred(train_X, train_Y, test_X, test_Y):
-    qda = QuadraticDiscriminantAnalysis()
-    qda.fit(train_X, train_Y)
-    pred = qda.predict(test_X)
-    rate = checkpred(test_Y, pred)
-    return (1 - rate), pred
 
 '''
 failrates = []
@@ -254,10 +255,13 @@ bestpred = logpred
 
 for i in range(len(Y_test)):
     print titles_test[i] + ' - Actual: ' + Y_test[i] + ' | Predicted: ' + bestpred[i]
-    # print test[i]
+    print 'Keywords:'
+    for item in test[i][2]:
+        print '\t' + item
     if bestpred[i] != Y_test[i] and bestpred[i] in test[i][3]:
-        print 'Prediction in description'
+        print '\t\tPrediction in description'
         metavalid += 1
+    print '\n-----------------------------------\n'
 
 print 'Exact match rate: ' + str(1- failrate)
 print 'Obscured prediction rate: ' + str(float(metavalid)/len(Y_test))           # predictions that did not match the bucket but did match a
