@@ -1,3 +1,9 @@
+# MSAN 621 group project
+# Corn on da CAWB
+# Movie genre prediction by keywords
+# Claire Broad
+
+
 import numpy as np
 import csv
 from collections import Counter
@@ -8,6 +14,11 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 
 def extract(list, keywords):
+    '''
+    :param list: nested lists -- each list is a movie -- [title, genre bucket, [list of five keywords]]
+    :param keywords: list of top keywords (features)
+    :return: list of titles (titles), array where rows are movies and columns are keywords (X), list/array of genres by bucket (Y)
+    '''
     titles = []
     X = []
     Y = []
@@ -28,6 +39,11 @@ def extract(list, keywords):
 
 
 def checkpred(obs, pred):
+    '''
+    :param obs: observed genre bucket
+    :param pred: predicted genre bucket
+    :return: accuracy rate of genre predictions
+    '''
     num = len(obs)
     true = 0
     for i in range(num):
@@ -36,6 +52,14 @@ def checkpred(obs, pred):
     return float(true)/num
 
 def knn(train_X, train_Y, test_X, test_Y, num):
+    '''
+    :param train_X: training set feature array
+    :param train_Y: training set genre list
+    :param test_X: test set feature array
+    :param test_Y: test set genre list
+    :param num: k range
+    :return: misclassification rate for best iterations, k value for best iteration, prediction list for best iteration
+    '''
     bestk = 0
     bestrate = 0.0
     bestpred = []
@@ -51,6 +75,13 @@ def knn(train_X, train_Y, test_X, test_Y, num):
     return (1 - bestrate), bestk, bestpred
 
 def logistic(train_X, train_Y, test_X, test_Y):
+    '''
+    :param train_X: training set feature array
+    :param train_Y: training set genre list
+    :param test_X: test set feature array
+    :param test_Y: test set genre list
+    :return: misclassification rate, prediction list
+    '''
     logreg = LogisticRegression()
     logreg.fit(train_X, train_Y)
     pred = logreg.predict(test_X)
@@ -58,6 +89,13 @@ def logistic(train_X, train_Y, test_X, test_Y):
     return (1 - rate), pred
 
 def lindisc(train_X, train_Y, test_X, test_Y):
+    '''
+    :param train_X: training set feature array
+    :param train_Y: training set genre list
+    :param test_X: test set feature array
+    :param test_Y: test set genre list
+    :return: misclassification rate, prediction list
+    '''
     lda = LinearDiscriminantAnalysis()
     lda.fit(train_X, train_Y)
     pred = lda.predict(test_X)
@@ -65,6 +103,13 @@ def lindisc(train_X, train_Y, test_X, test_Y):
     return (1 - rate), pred
 
 def quadpred(train_X, train_Y, test_X, test_Y):
+    '''
+    :param train_X: training set feature array
+    :param train_Y: training set genre list
+    :param test_X: test set feature array
+    :param test_Y: test set genre list
+    :return: misclassification rate, prediction list
+    '''
     qda = QuadraticDiscriminantAnalysis()
     qda.fit(train_X, train_Y)
     pred = qda.predict(test_X)
@@ -76,10 +121,10 @@ start = time.time()
 
 movielist = []
 
-keycounter = Counter()
+keycounter = Counter()                                # counter for all keywords in raw data
 
-genrecounter = Counter()
-rawgenrecounter = Counter()
+genrecounter = Counter()                              # counter for genre buckets
+rawgenrecounter = Counter()                           # counter for all raw genre tags
 
 with open('movie_metadata.csv', 'r') as movies:
     moviereader = csv.reader(movies)
@@ -91,6 +136,9 @@ with open('movie_metadata.csv', 'r') as movies:
         rawgenrecounter[genres] += 1
         keywords = line[16]
         if i > 1:
+            '''
+            Bucket movie genres based on the list of genres given in the raw data
+            '''
             genreset = set(genres.split('|'))
             if len(genreset) == 1:
                 if len(set(['Documentary', 'Biography','Game-Show','Reality-TV','News']) & genreset) > 0:
@@ -143,10 +191,10 @@ with open('movie_metadata.csv', 'r') as movies:
 
 i = 0
 
-keyfeat = []
+keyfeat = []                           # list of keywords with highest prevalence
 
 for item in keycounter:
-    if keycounter[item] > 5:
+    if keycounter[item] > 10:
         i += 1
         # print i
         # print item + ': ' + str(keycounter[item])
@@ -154,12 +202,12 @@ for item in keycounter:
 
 # print movielist
 
-random.shuffle(movielist)
+random.shuffle(movielist)                        # randomize the list for train/test subsetting
 
 # print movielist
 
-train = movielist[:-len(movielist)/10]
-test = movielist[-len(movielist)/10:]
+train = movielist[:-len(movielist)/10]           # first 9/10 of the shuffled list for training
+test = movielist[-len(movielist)/10:]            # last 1/10 for testing
 
 titles_train, X_train, Y_train = extract(train, keyfeat)
 titles_test, X_test, Y_test = extract(test, keyfeat)
