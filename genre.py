@@ -12,6 +12,10 @@ import time
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
+from sklearn.tree import DecisionTreeClassifier
+from sklearn import metrics
+from sklearn.cross_validation import cross_val_score
+from sklearn.ensemble import RandomForestClassifier
 
 def extract(list, keywords):
     '''
@@ -50,7 +54,7 @@ def checkpred(obs, pred):
         if obs[i] == pred[i]:
             true += 1
     return float(true)/num
-
+"""
 def knn(train_X, train_Y, test_X, test_Y, num):
     '''
     :param train_X: training set feature array
@@ -115,6 +119,129 @@ def quadpred(train_X, train_Y, test_X, test_Y):
     pred = qda.predict(test_X)
     rate = checkpred(test_Y, pred)
     return (1 - rate), pred
+
+def treepred(train_X, train_Y, test_X, test_Y):
+    '''
+    :param train_X: training set feature array
+    :param train_Y: training set genre list
+    :param test_X: test set feature array
+    :param test_Y: test set genre list
+    :return: misclassification rate, prediction list
+    '''
+    tree = DecisionTreeClassifier(max_depth=30)
+    tree.fit(train_X, train_Y)
+    pred = tree.predict(test_X)
+    rate = checkpred(test_Y, pred)
+    return (1 - rate), pred
+"""
+
+def knn(train_X, train_Y, test_X, test_Y, num):
+    '''
+    :param train_X: training set feature array
+    :param train_Y: training set genre list
+    :param test_X: test set feature array
+    :param test_Y: test set genre list
+    :param num: k range
+    :return: misclassification rate for best iterations, k value for best iteration, prediction list for best iteration
+    '''
+    bestk = 0
+    bestrate = 0.0
+    bestpred = []
+    for i in range(1,num):
+        knnclass = KNeighborsClassifier(n_neighbors = i)
+        knnclass.fit(train_X, train_Y)
+        pred = knnclass.predict(test_X)
+        rate = checkpred(test_Y, pred)
+        if rate > bestrate:
+            bestk = i
+            bestrate = rate
+            bestpred = pred
+    knnclass = KNeighborsClassifier(n_neighbors = bestk)
+    knnclass.fit(train_X, train_Y)
+    cv = cross_val_score(knnclass, X_train, Y_train, cv=10,
+                       scoring=metrics.make_scorer(metrics.accuracy_score))
+    return (1 - cv.mean()), bestk, bestpred
+
+def logistic(train_X, train_Y, test_X, test_Y):
+    '''
+    :param train_X: training set feature array
+    :param train_Y: training set genre list
+    :param test_X: test set feature array
+    :param test_Y: test set genre list
+    :return: misclassification rate, prediction list
+    '''
+    logreg = LogisticRegression()
+    logreg.fit(train_X, train_Y)
+    pred = logreg.predict(test_X)
+    rate = checkpred(test_Y, pred)
+    cv = cross_val_score(logreg, X_train, Y_train, cv=10,
+                       scoring=metrics.make_scorer(metrics.accuracy_score))
+    return (1 - cv.mean()), pred
+
+def lindisc(train_X, train_Y, test_X, test_Y):
+    '''
+    :param train_X: training set feature array
+    :param train_Y: training set genre list
+    :param test_X: test set feature array
+    :param test_Y: test set genre list
+    :return: misclassification rate, prediction list
+    '''
+    lda = LinearDiscriminantAnalysis()
+    lda.fit(train_X, train_Y)
+    pred = lda.predict(test_X)
+    rate = checkpred(test_Y, pred)
+    cv = cross_val_score(lda, X_train, Y_train, cv=10,
+                       scoring=metrics.make_scorer(metrics.accuracy_score))
+    return (1 - cv.mean()), pred
+
+def quadpred(train_X, train_Y, test_X, test_Y):
+    '''
+    :param train_X: training set feature array
+    :param train_Y: training set genre list
+    :param test_X: test set feature array
+    :param test_Y: test set genre list
+    :return: misclassification rate, prediction list
+    '''
+    qda = QuadraticDiscriminantAnalysis()
+    qda.fit(train_X, train_Y)
+    pred = qda.predict(test_X)
+    rate = checkpred(test_Y, pred)
+    cv = cross_val_score(qda, X_train, Y_train, cv=10,
+                       scoring=metrics.make_scorer(metrics.accuracy_score))
+    return (1 - cv.mean()), pred
+
+def treepred(train_X, train_Y, test_X, test_Y):
+    '''
+    :param train_X: training set feature array
+    :param train_Y: training set genre list
+    :param test_X: test set feature array
+    :param test_Y: test set genre list
+    :return: misclassification rate, prediction list
+    '''
+    tree = DecisionTreeClassifier(max_depth=100)
+    tree.fit(train_X, train_Y)
+    pred = tree.predict(test_X)
+    rate = checkpred(test_Y, pred)
+    cv = cross_val_score(tree, X_train, Y_train, cv=10,
+                       scoring=metrics.make_scorer(metrics.accuracy_score))
+    return (1 - cv.mean()), pred
+
+def forestpred(train_X, train_Y, test_X, test_Y):
+    '''
+    :param train_X: training set feature array
+    :param train_Y: training set genre list
+    :param test_X: test set feature array
+    :param test_Y: test set genre list
+    :return: misclassification rate, prediction list
+    '''
+    forest = RandomForestClassifier(n_estimators=100)
+    forest.fit(train_X, train_Y)
+    pred = forest.predict(test_X)
+    rate = checkpred(test_Y, pred)
+    cv = cross_val_score(forest, X_train, Y_train, cv=10,
+                       scoring=metrics.make_scorer(metrics.accuracy_score))
+    return (1 - cv.mean()), pred
+
 
 
 start = time.time()
@@ -215,12 +342,13 @@ titles_test, X_test, Y_test = extract(test, keyfeat)
 # print titles_train
 # print X_train
 # print Y_train
+#print Y_test
 
 end = time.time()
 
 print 'Feature extraction: ' + str(end - start) + ' seconds'
 
-'''
+
 failrates = []
 
 knnstart = time.time()
@@ -236,14 +364,14 @@ print 'Misclassification rate: ' + str(failrate) + ' for ' + str(topk) + ' neigh
 knnend = time.time()
 
 print 'Time for KNN: ' + str(knnend - knnstart) + ' seconds'
-'''
+
 print '\n--------------------------\n'
 
 logstart = time.time()
 
 failrate, logpred = logistic(X_train, Y_train, X_test, Y_test)
 
-# failrates.append(failrate)
+failrates.append(failrate)
 
 logend = time.time()
 
@@ -252,7 +380,7 @@ print 'Misclassification rate: ' + str(failrate) + '\n'
 print 'Time for Logistic Regression: ' + str(logend - logstart) + ' seconds'
 
 print '\n--------------------------\n'
-'''
+
 LDAstart = time.time()
 
 failrate, LDApred = lindisc(X_train, Y_train, X_test, Y_test)
@@ -271,11 +399,41 @@ QDAstart = time.time()
 
 failrate, QDApred = quadpred(X_train, Y_train, X_test, Y_test)
 
+failrates.append(failrate)
+
 QDAend = time.time()
 
 print 'Misclassification rate: ' + str(failrate) + '\n'
 
 print 'Time for Quadratic Discriminant Analysis: ' + str(QDAend - QDAstart) + ' seconds'
+
+print '\n--------------------------\n'
+
+treestart = time.time()
+
+failrate, logpred = treepred(X_train, Y_train, X_test, Y_test)
+
+failrates.append(failrate)
+
+treeend = time.time()
+
+print 'Misclassification rate: ' + str(failrate) + '\n'
+
+print 'Time for Decision Tree Classifier: ' + str(treeend - treestart) + ' seconds'
+
+print '\n--------------------------\n'
+
+foreststart = time.time()
+
+failrate, logpred = forestpred(X_train, Y_train, X_test, Y_test)
+
+failrates.append(failrate)
+
+forestend = time.time()
+
+print 'Misclassification rate: ' + str(failrate) + '\n'
+
+print 'Time for Random Forest Classifier: ' + str(forestend - foreststart) + ' seconds'
 
 print '\n--------------------------\n'
 
@@ -293,10 +451,15 @@ elif best == 2:
 elif best == 3:
     bestpred = QDApred
     print 'QDA wins'
+elif best ==4:
+    bestpred = treepred
+    print "Decision tree wins"
+elif best ==5:
+    bestpred = forestpred
+    print "Forest wins"
 else:
     print 'Yikes'
-'''
-
+"""
 metavalid = 0
 
 bestpred = logpred
@@ -314,3 +477,4 @@ for i in range(len(Y_test)):
 print 'Exact match rate: ' + str(1- failrate)
 print 'Obscured prediction rate: ' + str(float(metavalid)/len(Y_test))           # predictions that did not match the bucket but did match a
                                                                                  # genre in the original description
+"""
