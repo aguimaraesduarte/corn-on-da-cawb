@@ -7,74 +7,123 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 from sklearn import preprocessing
 import matplotlib.cm as cm
-
-
-movies = pd.read_table("movie_metadata.csv", sep=",")
-
-# reorder columns to have 'gross' as the last column
-cols = movies.columns.tolist()
-cols = cols[:8]+cols[9:]+['gross']
-movies = movies[cols]
-
-# Impute missing data
-#fill = pd.Series([movies[c].value_counts().index[0] #most common value
-fill = pd.Series(["Missing" #create new label
-	if movies[c].dtype == np.dtype('O')
-	else movies[c].mean()
-	for c in movies], index=movies.columns)
-movies = movies.fillna(fill)
-
-# separate into X and Y
-X = movies.drop('gross', axis=1)
-X_num = X[[c for c in X if X[c].dtype != np.dtype('O')]]
-X_str = X[[c for c in X if X[c].dtype == np.dtype('O')]]
-Y = movies['gross']
-
-# scale data
-#X_num_scaled = preprocessing.scale(X_num) #throws weird warning
-min_max_scaler = preprocessing.MinMaxScaler()
-X_num_scaled = min_max_scaler.fit_transform(X_num)
-Y_scaled = (((Y - min(Y)) * (1 - 0)) / (max(Y) - min(Y))) + 0
-
-# test
-#X_num2 = X_num[["duration","budget","imdb_score"]]
-X_num2 = X_num[["num_critic_for_reviews","director_facebook_likes","actor_1_facebook_likes",
-                "actor_2_facebook_likes","actor_3_facebook_likes","actor_1_facebook_likes",
-                "num_voted_users","num_user_for_reviews","movie_facebook_likes"]]
-min_max_scaler = preprocessing.MinMaxScaler()
-X_num_scaled2 = min_max_scaler.fit_transform(X_num2)
-
-# PCA
 from sklearn.decomposition import PCA
-n = 3 # number of components we want
-pca = PCA(n_components=n)
-pca.fit(X_num_scaled)
-X2 = pca.transform(X_num_scaled)
-pca_components = pca.components_
-movies_index = np.array(Y.index)
-
-ax1 = 0
-ax2 = 1
-max_movies = min(2500, len(X2))
-plt.figure()
-for i, a in zip(movies_index[:max_movies], X2[:max_movies]):
-	r = cm.seismic(Y_scaled[i])
-	plt.scatter(a[ax1], a[ax2], color=r)
-	plt.text(a[ax1], a[ax2], X_str['movie_title'][i], color=r, fontsize=8)
-
-plt.xlim((min([a[ax1] for a in X2[:max_movies]]), max([a[ax1] for a in X2[:max_movies]])))
-plt.ylim((min([a[ax2] for a in X2[:max_movies]]), max([a[ax2] for a in X2[:max_movies]])))
-plt.xlabel('PCA Axis %d' %ax1)
-plt.ylabel('PCA Axis %d' %ax2)
-plt.show()
-
 from mpl_toolkits.mplot3d import Axes3D
-max_movies = min(500, len(X2))
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-for i, a in zip(movies_index[:max_movies], X2[:max_movies]):
-	r = cm.seismic(Y_scaled[i])
-	ax.scatter(a[0], a[1], a[2], color=r)
-	ax.text(a[0], a[1], a[2], X_str['movie_title'][i], fontsize=8, color=r)
 
-plt.show()
+######################################
+##             CONSTANTS            ##
+######################################
+INPUT_FILE = "movie_metadata.csv"
+N_PCA = 3
+AXIS0_PCA = 0
+AXIS1_PCA = 1
+NUM_MOVIES_PCA = 150
+COLOR = 0 #--0: gross, 1: year, 2: director_facebook_likes, 3: num_critic_for_reviews
+PLOT_PCA_2D = True
+PLOT_PCA_3D = False
+
+######################################
+##       FUNCTION DEFINITIONS       ##
+######################################
+# Read file and return pandas df
+def getDFFromFile(f):
+	return pd.read_table(f, sep=",")
+
+# Get movie titles
+def getTitles(df):
+	return df['movie_title']
+
+# Keep only numeric features
+def keepNumeric(df):
+	return df[[c for c in df if df[c].dtype != np.dtype('O')]]
+
+# Perform imputation -> mean value per feature
+def impute(df):
+	fill = pd.Series([df[c].mean() for c in df], index=df.columns)
+	return df.fillna(fill)
+
+# Transform (scale) data using min-max scaler
+def scale(df, scaler):
+	return scaler.fit_transform(df)
+
+# Scale feature to [a-b] range
+def scale01(col, a=0, b=1):
+	return (((col - min(col)) * (b - a)) / (max(col) - min(col))) + a
+
+# perform PCA
+def performPCA(n, df):
+	pca = PCA(n_components=n)
+	pca.fit(df)
+	df_tr = pca.transform(df)
+	pca_components = pca.components_
+	return (pca, df_tr, pca_components)
+
+# create arrays for coloring PCA plots
+def makeColors(df):
+	colors = []
+	colors.append(df['gross'])
+	colors.append(df['title_year'])
+	colors.append(df['director_facebook_likes'])
+	colors.append(df['num_critic_for_reviews'])
+	return [scale01(c) for c in colors]
+
+# Plot PCA
+def plotPCA(df, df_index, ax1, ax2, num_movies, titles, col):
+	max_movies = min(num_movies, len(df)) #--choose the minimum between user input and max allowed
+	plt.figure()
+	ix = np.array(df_index[df_index.columns[0]].index)
+	for i, a in zip(ix[:max_movies], df[:max_movies]):
+		r = cm.seismic(col[i])
+		plt.scatter(a[ax1], a[ax2], c=r)
+		plt.text(a[ax1], a[ax2], titles[i], color=r, fontsize=8)
+	plt.xlabel('PCA Axis %d' %ax1)
+	plt.ylabel('PCA Axis %d' %ax2)
+	plt.show()
+
+# 3D plot for PCA
+def plotPCA3D(df, df_index, num_movies, titles, col):
+	max_movies = min(num_movies, len(df))#--choose the minimum between user input and max allowed
+	fig = plt.figure()
+	ax = fig.add_subplot(111, projection='3d')
+	ix = np.array(df_index[df_index.columns[0]].index)
+	for i, a in zip(ix[:max_movies], df[:max_movies]):
+		r = cm.seismic(col[i])
+		ax.scatter(a[0], a[1], a[2], c=r)
+		ax.text(a[0], a[1], a[2], titles[i], fontsize=8, color=r)
+	plt.xlabel('PCA Axis 0')
+	plt.ylabel('PCA Axis 1')
+	plt.show()
+
+#### MAIN
+movies = getDFFromFile(INPUT_FILE)
+movie_titles = getTitles(movies)
+movies = keepNumeric(movies)
+movies = impute(movies)
+min_max_scaler = preprocessing.MinMaxScaler()
+movies_scaled = scale(movies, min_max_scaler)
+colors = makeColors(movies)
+
+# perform PCA
+pca, movies_tr, axes = performPCA(N_PCA, movies_scaled)
+
+# plot PCA
+if PLOT_PCA_2D:
+	plotPCA(movies_tr, movies, AXIS0_PCA, AXIS1_PCA, NUM_MOVIES_PCA, movie_titles, colors[COLOR])
+
+# plot PCA in 3D
+if PLOT_PCA_3D:
+	plotPCA3D(movies_tr, movies, NUM_MOVIES_PCA, movie_titles, color[COLOR])
+
+
+
+
+
+"""
+# use less features
+X_num2 = X_num[["duration","budget","imdb_score"]]
+#X_num2 = X_num[["num_critic_for_reviews","director_facebook_likes","actor_1_facebook_likes",
+#                "actor_2_facebook_likes","actor_3_facebook_likes","actor_1_facebook_likes",
+#                "num_voted_users","num_user_for_reviews","movie_facebook_likes"]]
+min_max_scaler = preprocessing.MinMaxScaler()
+X_num_scaled = min_max_scaler.fit_transform(X_num2)
+"""

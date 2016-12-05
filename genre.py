@@ -135,7 +135,7 @@ def treepred(train_X, train_Y, test_X, test_Y):
     return (1 - rate), pred
 """
 
-def knn(train_X, train_Y, test_X, test_Y, num):
+def knn(train_X, train_Y, num):
     '''
     :param train_X: training set feature array
     :param train_Y: training set genre list
@@ -150,19 +150,18 @@ def knn(train_X, train_Y, test_X, test_Y, num):
     for i in range(1,num):
         knnclass = KNeighborsClassifier(n_neighbors = i)
         knnclass.fit(train_X, train_Y)
-        pred = knnclass.predict(test_X)
-        rate = checkpred(test_Y, pred)
+        rate = (1-cross_val_score(knnclass, train_X, train_Y, cv=5,
+                       scoring=metrics.make_scorer(metrics.accuracy_score)).mean())
         if rate > bestrate:
             bestk = i
             bestrate = rate
-            bestpred = pred
     knnclass = KNeighborsClassifier(n_neighbors = bestk)
     knnclass.fit(train_X, train_Y)
-    cv = cross_val_score(knnclass, X_train, Y_train, cv=10,
+    cv = cross_val_score(knnclass, train_X, train_Y, cv=10,
                        scoring=metrics.make_scorer(metrics.accuracy_score))
-    return (1 - cv.mean()), bestk, bestpred
+    return (1 - cv.mean()), bestk
 
-def logistic(train_X, train_Y, test_X, test_Y):
+def logistic(train_X, train_Y):
     '''
     :param train_X: training set feature array
     :param train_Y: training set genre list
@@ -172,13 +171,11 @@ def logistic(train_X, train_Y, test_X, test_Y):
     '''
     logreg = LogisticRegression()
     logreg.fit(train_X, train_Y)
-    pred = logreg.predict(test_X)
-    rate = checkpred(test_Y, pred)
-    cv = cross_val_score(logreg, X_train, Y_train, cv=10,
+    cv = cross_val_score(logreg, train_X, train_Y, cv=10,
                        scoring=metrics.make_scorer(metrics.accuracy_score))
-    return (1 - cv.mean()), pred
+    return (1 - cv.mean())
 
-def lindisc(train_X, train_Y, test_X, test_Y):
+def lindisc(train_X, train_Y):
     '''
     :param train_X: training set feature array
     :param train_Y: training set genre list
@@ -188,13 +185,11 @@ def lindisc(train_X, train_Y, test_X, test_Y):
     '''
     lda = LinearDiscriminantAnalysis()
     lda.fit(train_X, train_Y)
-    pred = lda.predict(test_X)
-    rate = checkpred(test_Y, pred)
-    cv = cross_val_score(lda, X_train, Y_train, cv=10,
+    cv = cross_val_score(lda, train_X, train_Y, cv=10,
                        scoring=metrics.make_scorer(metrics.accuracy_score))
-    return (1 - cv.mean()), pred
+    return (1 - cv.mean())
 
-def quadpred(train_X, train_Y, test_X, test_Y):
+def quadpred(train_X, train_Y):
     '''
     :param train_X: training set feature array
     :param train_Y: training set genre list
@@ -204,13 +199,11 @@ def quadpred(train_X, train_Y, test_X, test_Y):
     '''
     qda = QuadraticDiscriminantAnalysis()
     qda.fit(train_X, train_Y)
-    pred = qda.predict(test_X)
-    rate = checkpred(test_Y, pred)
-    cv = cross_val_score(qda, X_train, Y_train, cv=10,
+    cv = cross_val_score(qda, train_X, train_Y, cv=10,
                        scoring=metrics.make_scorer(metrics.accuracy_score))
-    return (1 - cv.mean()), pred
+    return (1 - cv.mean())
 
-def treepred(train_X, train_Y, test_X, test_Y):
+def treepred(train_X, train_Y):
     '''
     :param train_X: training set feature array
     :param train_Y: training set genre list
@@ -218,15 +211,13 @@ def treepred(train_X, train_Y, test_X, test_Y):
     :param test_Y: test set genre list
     :return: misclassification rate, prediction list
     '''
-    tree = DecisionTreeClassifier(max_depth=100)
+    tree = DecisionTreeClassifier(max_depth=25)
     tree.fit(train_X, train_Y)
-    pred = tree.predict(test_X)
-    rate = checkpred(test_Y, pred)
-    cv = cross_val_score(tree, X_train, Y_train, cv=10,
+    cv = cross_val_score(tree, train_X, train_Y, cv=10,
                        scoring=metrics.make_scorer(metrics.accuracy_score))
-    return (1 - cv.mean()), pred
+    return (1 - cv.mean())
 
-def forestpred(train_X, train_Y, test_X, test_Y):
+def forestpred(train_X, train_Y):
     '''
     :param train_X: training set feature array
     :param train_Y: training set genre list
@@ -234,13 +225,11 @@ def forestpred(train_X, train_Y, test_X, test_Y):
     :param test_Y: test set genre list
     :return: misclassification rate, prediction list
     '''
-    forest = RandomForestClassifier(n_estimators=100)
+    forest = RandomForestClassifier(n_estimators=25)
     forest.fit(train_X, train_Y)
-    pred = forest.predict(test_X)
-    rate = checkpred(test_Y, pred)
-    cv = cross_val_score(forest, X_train, Y_train, cv=10,
+    cv = cross_val_score(forest, train_X, train_Y, cv=10,
                        scoring=metrics.make_scorer(metrics.accuracy_score))
-    return (1 - cv.mean()), pred
+    return (1 - cv.mean())
 
 
 
@@ -333,11 +322,7 @@ random.shuffle(movielist)                        # randomize the list for train/
 
 # print movielist
 
-train = movielist[:-len(movielist)/10]           # first 9/10 of the shuffled list for training
-test = movielist[-len(movielist)/10:]            # last 1/10 for testing
-
-titles_train, X_train, Y_train = extract(train, keyfeat)
-titles_test, X_test, Y_test = extract(test, keyfeat)
+titles_train, X_train, Y_train = extract(movielist, keyfeat)
 
 # print titles_train
 # print X_train
@@ -353,7 +338,7 @@ failrates = []
 
 knnstart = time.time()
 
-failrate, topk, knnpred = knn(X_train, Y_train, X_test, Y_test, 19)
+failrate, topk = knn(X_train, Y_train, 19)
 
 failrates.append(failrate)
 
@@ -369,7 +354,7 @@ print '\n--------------------------\n'
 
 logstart = time.time()
 
-failrate, logpred = logistic(X_train, Y_train, X_test, Y_test)
+failrate = logistic(X_train, Y_train)
 
 failrates.append(failrate)
 
@@ -383,7 +368,7 @@ print '\n--------------------------\n'
 
 LDAstart = time.time()
 
-failrate, LDApred = lindisc(X_train, Y_train, X_test, Y_test)
+failrate = lindisc(X_train, Y_train)
 
 failrates.append(failrate)
 
@@ -397,7 +382,7 @@ print '\n--------------------------\n'
 
 QDAstart = time.time()
 
-failrate, QDApred = quadpred(X_train, Y_train, X_test, Y_test)
+failrate = quadpred(X_train, Y_train)
 
 failrates.append(failrate)
 
@@ -411,7 +396,7 @@ print '\n--------------------------\n'
 
 treestart = time.time()
 
-failrate, logpred = treepred(X_train, Y_train, X_test, Y_test)
+failrate = treepred(X_train, Y_train)
 
 failrates.append(failrate)
 
@@ -425,7 +410,7 @@ print '\n--------------------------\n'
 
 foreststart = time.time()
 
-failrate, logpred = forestpred(X_train, Y_train, X_test, Y_test)
+failrate = forestpred(X_train, Y_train)
 
 failrates.append(failrate)
 
@@ -440,36 +425,38 @@ print '\n--------------------------\n'
 best = np.argmin(failrates)
 
 if best == 0:
-    bestpred = knnpred
     print 'KNN wins'
 elif best == 1:
-    bestpred = logpred
     print 'Logistic Regression wins'
 elif best == 2:
-    bestpred = LDApred
     print 'LDA wins'
 elif best == 3:
-    bestpred = QDApred
     print 'QDA wins'
-elif best ==4:
-    bestpred = treepred
+elif best == 4:
     print "Decision tree wins"
-elif best ==5:
-    bestpred = forestpred
+elif best == 5:
     print "Forest wins"
 else:
     print 'Yikes'
-"""
+
+train = movielist[:-len(movielist)/10]           # first 9/10 of the shuffled list for training
+test = movielist[-len(movielist)/10:]            # last 1/10 for testing
+
+titles_train, X_train, Y_train = extract(train, keyfeat)
+titles_test, X_test, Y_test = extract(test, keyfeat)
+
+logreg = LogisticRegression()
+logreg.fit(X_train, Y_train)
+logpred = logreg.predict(X_test)
+
 metavalid = 0
 
-bestpred = logpred
-
 for i in range(len(Y_test)):
-    print titles_test[i] + ' - Actual: ' + Y_test[i] + ' | Predicted: ' + bestpred[i]
+    print titles_test[i] + ' - Actual: ' + Y_test[i] + ' | Predicted: ' + logpred[i]
     print 'Keywords:'
     for item in test[i][2]:
         print '\t' + item
-    if bestpred[i] != Y_test[i] and bestpred[i] in test[i][3]:
+    if logpred[i] != Y_test[i] and logpred[i] in test[i][3]:
         print '\t\tPrediction in description'
         metavalid += 1
     print '\n-----------------------------------\n'
@@ -477,4 +464,3 @@ for i in range(len(Y_test)):
 print 'Exact match rate: ' + str(1- failrate)
 print 'Obscured prediction rate: ' + str(float(metavalid)/len(Y_test))           # predictions that did not match the bucket but did match a
                                                                                  # genre in the original description
-"""
