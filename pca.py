@@ -13,14 +13,14 @@ from mpl_toolkits.mplot3d import Axes3D
 ######################################
 ##             CONSTANTS            ##
 ######################################
-INPUT_FILE = "movie_metadata.csv"
-N_PCA = 3
-AXIS0_PCA = 0
-AXIS1_PCA = 1
-NUM_MOVIES_PCA = 150
+INPUT_FILE = "movie_metadata.csv" #--do not change
+N_PCA = 3 #--do not change
+AXIS0_PCA = 0 #--{0, 1, 2}
+AXIS1_PCA = 1 #--{0, 1, 2} different from AXIS0_PCA
+NUM_MOVIES_PCA = 150 #--keep positive
 COLOR = 0 #--0: gross, 1: year, 2: director_facebook_likes, 3: num_critic_for_reviews
-PLOT_PCA_2D = True
-PLOT_PCA_3D = False
+PLOT_PCA_2D = True #--{True, False}
+PLOT_PCA_3D = True #--{True, False}
 
 ######################################
 ##       FUNCTION DEFINITIONS       ##
@@ -94,36 +94,25 @@ def plotPCA3D(df, df_index, num_movies, titles, col):
 	plt.ylabel('PCA Axis 1')
 	plt.show()
 
-#### MAIN
-movies = getDFFromFile(INPUT_FILE)
-movie_titles = getTitles(movies)
-movies = keepNumeric(movies)
-movies = impute(movies)
-min_max_scaler = preprocessing.MinMaxScaler()
-movies_scaled = scale(movies, min_max_scaler)
-colors = makeColors(movies)
+##################################################
+##########              MAIN            ##########
+##################################################
+if __name__ == "__main__":
+	movies = getDFFromFile(INPUT_FILE)
+	movie_titles = getTitles(movies)
+	movies = keepNumeric(movies)
+	movies = impute(movies)
+	min_max_scaler = preprocessing.MinMaxScaler()
+	movies_scaled = scale(movies, min_max_scaler)
+	colors = makeColors(movies)
 
-# perform PCA
-pca, movies_tr, axes = performPCA(N_PCA, movies_scaled)
+	# perform PCA
+	pca, movies_tr, axes = performPCA(N_PCA, movies_scaled)
 
-# plot PCA
-if PLOT_PCA_2D:
-	plotPCA(movies_tr, movies, AXIS0_PCA, AXIS1_PCA, NUM_MOVIES_PCA, movie_titles, colors[COLOR])
+	# plot PCA
+	if PLOT_PCA_2D:
+		plotPCA(movies_tr, movies, AXIS0_PCA, AXIS1_PCA, NUM_MOVIES_PCA, movie_titles, colors[COLOR])
 
-# plot PCA in 3D
-if PLOT_PCA_3D:
-	plotPCA3D(movies_tr, movies, NUM_MOVIES_PCA, movie_titles, color[COLOR])
-
-
-
-
-
-"""
-# use less features
-X_num2 = X_num[["duration","budget","imdb_score"]]
-#X_num2 = X_num[["num_critic_for_reviews","director_facebook_likes","actor_1_facebook_likes",
-#                "actor_2_facebook_likes","actor_3_facebook_likes","actor_1_facebook_likes",
-#                "num_voted_users","num_user_for_reviews","movie_facebook_likes"]]
-min_max_scaler = preprocessing.MinMaxScaler()
-X_num_scaled = min_max_scaler.fit_transform(X_num2)
-"""
+	# plot PCA in 3D
+	if PLOT_PCA_3D:
+		plotPCA3D(movies_tr, movies, NUM_MOVIES_PCA, movie_titles, colors[COLOR])
