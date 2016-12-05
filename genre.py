@@ -1,7 +1,7 @@
 # MSAN 621 group project
 # Corn on da CAWB
 # Movie genre prediction by keywords
-# Claire Broad
+# Claire Broad + Andre Duarte
 
 
 import numpy as np
