@@ -75,6 +75,128 @@ def extract(list, keywords):
     Y = np.array(Y).T
     return titles, X, Y
 
+def checkpred(obs, pred):
+    '''
+    :param obs: observed genre bucket
+    :param pred: predicted genre bucket
+    :return: accuracy rate of genre predictions
+    '''
+    num = len(obs)
+    true = 0
+    for i in range(num):
+        if obs[i] == pred[i]:
+            true += 1
+    return float(true)/num
+
+
+def knn(train_X, train_Y, test_X, test_Y, num):
+    '''
+    :param train_X: training set feature array
+    :param train_Y: training set genre list
+    :param test_X: test set feature array
+    :param test_Y: test set genre list
+    :param num: k range
+    :return: misclassification rate for best iterations, k value for best iteration, prediction list for best iteration
+    '''
+    bestk = 0
+    bestrate = 0.0
+    bestpred = []
+    for i in range(1,num):
+        knnclass = KNeighborsClassifier(n_neighbors = i)
+        knnclass.fit(train_X, train_Y)
+        pred = knnclass.predict(test_X)
+        rate = checkpred(test_Y, pred)
+        if rate > bestrate:
+            bestk = i
+            bestrate = rate
+            bestpred = pred
+    knnclass = KNeighborsClassifier(n_neighbors = bestk)
+    knnclass.fit(train_X, train_Y)
+    cv = cross_val_score(knnclass, train_X, train_Y, cv=10,
+                       scoring=metrics.make_scorer(metrics.accuracy_score))
+    return (1 - cv.mean()), bestk, bestpred
+
+def logistic(train_X, train_Y, test_X, test_Y):
+    '''
+    :param train_X: training set feature array
+    :param train_Y: training set genre list
+    :param test_X: test set feature array
+    :param test_Y: test set genre list
+    :return: misclassification rate, prediction list
+    '''
+    logreg = LogisticRegression()
+    logreg.fit(train_X, train_Y)
+    pred = logreg.predict(test_X)
+    rate = checkpred(test_Y, pred)
+    cv = cross_val_score(logreg, train_X, train_Y, cv=10,
+                       scoring=metrics.make_scorer(metrics.accuracy_score))
+    return (1 - cv.mean()), pred
+
+def lindisc(train_X, train_Y, test_X, test_Y):
+    '''
+    :param train_X: training set feature array
+    :param train_Y: training set genre list
+    :param test_X: test set feature array
+    :param test_Y: test set genre list
+    :return: misclassification rate, prediction list
+    '''
+    lda = LinearDiscriminantAnalysis()
+    lda.fit(train_X, train_Y)
+    pred = lda.predict(test_X)
+    rate = checkpred(test_Y, pred)
+    cv = cross_val_score(lda, train_X, train_Y, cv=10,
+                       scoring=metrics.make_scorer(metrics.accuracy_score))
+    return (1 - cv.mean()), pred
+
+def quadpred(train_X, train_Y, test_X, test_Y):
+    '''
+    :param train_X: training set feature array
+    :param train_Y: training set genre list
+    :param test_X: test set feature array
+    :param test_Y: test set genre list
+    :return: misclassification rate, prediction list
+    '''
+    qda = QuadraticDiscriminantAnalysis()
+    qda.fit(train_X, train_Y)
+    pred = qda.predict(test_X)
+    rate = checkpred(test_Y, pred)
+    cv = cross_val_score(qda, train_X, train_Y, cv=10,
+                       scoring=metrics.make_scorer(metrics.accuracy_score))
+    return (1 - cv.mean()), pred
+
+def treepred(train_X, train_Y, test_X, test_Y):
+    '''
+    :param train_X: training set feature array
+    :param train_Y: training set genre list
+    :param test_X: test set feature array
+    :param test_Y: test set genre list
+    :return: misclassification rate, prediction list
+    '''
+    tree = DecisionTreeClassifier(max_depth=100)
+    tree.fit(train_X, train_Y)
+    pred = tree.predict(test_X)
+    rate = checkpred(test_Y, pred)
+    cv = cross_val_score(tree, train_X, train_Y, cv=10,
+                       scoring=metrics.make_scorer(metrics.accuracy_score))
+    return (1 - cv.mean()), pred
+
+def forestpred(train_X, train_Y, test_X, test_Y):
+    '''
+    :param train_X: training set feature array
+    :param train_Y: training set genre list
+    :param test_X: test set feature array
+    :param test_Y: test set genre list
+    :return: misclassification rate, prediction list
+    '''
+    forest = RandomForestClassifier(n_estimators=100)
+    forest.fit(train_X, train_Y)
+    pred = forest.predict(test_X)
+    rate = checkpred(test_Y, pred)
+    cv = cross_val_score(forest, train_X, train_Y, cv=10,
+                       scoring=metrics.make_scorer(metrics.accuracy_score))
+    return (1 - cv.mean()), pred
+
+
 start = time.time()
 
 movielist = []
@@ -144,140 +266,22 @@ with open('movie_data_plus.csv', 'r') as movies:
             for word in plotlist:
                 keycounter[word + ' - ' + genre] += 1
 
-def checkpred(obs, pred):
-    '''
-    :param obs: observed genre bucket
-    :param pred: predicted genre bucket
-    :return: accuracy rate of genre predictions
-    '''
-    num = len(obs)
-    true = 0
-    for i in range(num):
-        if obs[i] == pred[i]:
-            true += 1
-    return float(true)/num
-
-
-def knn(train_X, train_Y, test_X, test_Y, num):
-    '''
-    :param train_X: training set feature array
-    :param train_Y: training set genre list
-    :param test_X: test set feature array
-    :param test_Y: test set genre list
-    :param num: k range
-    :return: misclassification rate for best iterations, k value for best iteration, prediction list for best iteration
-    '''
-    bestk = 0
-    bestrate = 0.0
-    bestpred = []
-    for i in range(1,num):
-        knnclass = KNeighborsClassifier(n_neighbors = i)
-        knnclass.fit(train_X, train_Y)
-        pred = knnclass.predict(test_X)
-        rate = checkpred(test_Y, pred)
-        if rate > bestrate:
-            bestk = i
-            bestrate = rate
-            bestpred = pred
-    knnclass = KNeighborsClassifier(n_neighbors = bestk)
-    knnclass.fit(train_X, train_Y)
-    cv = cross_val_score(knnclass, X_train, Y_train, cv=10,
-                       scoring=metrics.make_scorer(metrics.accuracy_score))
-    return (1 - cv.mean()), bestk, bestpred
-
-def logistic(train_X, train_Y, test_X, test_Y):
-    '''
-    :param train_X: training set feature array
-    :param train_Y: training set genre list
-    :param test_X: test set feature array
-    :param test_Y: test set genre list
-    :return: misclassification rate, prediction list
-    '''
-    logreg = LogisticRegression()
-    logreg.fit(train_X, train_Y)
-    pred = logreg.predict(test_X)
-    rate = checkpred(test_Y, pred)
-    cv = cross_val_score(logreg, X_train, Y_train, cv=10,
-                       scoring=metrics.make_scorer(metrics.accuracy_score))
-    return (1 - cv.mean()), pred
-
-def lindisc(train_X, train_Y, test_X, test_Y):
-    '''
-    :param train_X: training set feature array
-    :param train_Y: training set genre list
-    :param test_X: test set feature array
-    :param test_Y: test set genre list
-    :return: misclassification rate, prediction list
-    '''
-    lda = LinearDiscriminantAnalysis()
-    lda.fit(train_X, train_Y)
-    pred = lda.predict(test_X)
-    rate = checkpred(test_Y, pred)
-    cv = cross_val_score(lda, X_train, Y_train, cv=10,
-                       scoring=metrics.make_scorer(metrics.accuracy_score))
-    return (1 - cv.mean()), pred
-
-def quadpred(train_X, train_Y, test_X, test_Y):
-    '''
-    :param train_X: training set feature array
-    :param train_Y: training set genre list
-    :param test_X: test set feature array
-    :param test_Y: test set genre list
-    :return: misclassification rate, prediction list
-    '''
-    qda = QuadraticDiscriminantAnalysis()
-    qda.fit(train_X, train_Y)
-    pred = qda.predict(test_X)
-    rate = checkpred(test_Y, pred)
-    cv = cross_val_score(qda, X_train, Y_train, cv=10,
-                       scoring=metrics.make_scorer(metrics.accuracy_score))
-    return (1 - cv.mean()), pred
-
-def treepred(train_X, train_Y, test_X, test_Y):
-    '''
-    :param train_X: training set feature array
-    :param train_Y: training set genre list
-    :param test_X: test set feature array
-    :param test_Y: test set genre list
-    :return: misclassification rate, prediction list
-    '''
-    tree = DecisionTreeClassifier(max_depth=100)
-    tree.fit(train_X, train_Y)
-    pred = tree.predict(test_X)
-    rate = checkpred(test_Y, pred)
-    cv = cross_val_score(tree, X_train, Y_train, cv=10,
-                       scoring=metrics.make_scorer(metrics.accuracy_score))
-    return (1 - cv.mean()), pred
-
-def forestpred(train_X, train_Y, test_X, test_Y):
-    '''
-    :param train_X: training set feature array
-    :param train_Y: training set genre list
-    :param test_X: test set feature array
-    :param test_Y: test set genre list
-    :return: misclassification rate, prediction list
-    '''
-    forest = RandomForestClassifier(n_estimators=100)
-    forest.fit(train_X, train_Y)
-    pred = forest.predict(test_X)
-    rate = checkpred(test_Y, pred)
-    cv = cross_val_score(forest, X_train, Y_train, cv=10,
-                       scoring=metrics.make_scorer(metrics.accuracy_score))
-    return (1 - cv.mean()), pred
 
 keywords = []
 
-for item in keycounter.most_common(400):
+for item in keycounter.most_common(1000):
     wordend = item[0].find(' - ')
     keywords.append(item[0][:wordend])
 
 top100ct = Counter(keywords[:100])
 
 for word in keywords:
-    if top100ct[word] > 2:
+    if top100ct[word] > 4:
         keywords.remove(word)
 
 keyfeat = list(set(keywords))
+
+# print len(keyfeat)
 
 # print movielist
 
