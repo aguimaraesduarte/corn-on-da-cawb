@@ -14,7 +14,6 @@ from mpl_toolkits.mplot3d import Axes3D
 ##             CONSTANTS            ##
 ######################################
 INPUT_FILE = "movie_metadata.csv" #--do not change
-N_PCA = 3 #--do not change
 AXIS0_PCA = 0 #--{0, 1, 2}
 AXIS1_PCA = 1 #--{0, 1, 2} different from AXIS0_PCA
 NUM_MOVIES_PCA = 150 #--keep positive
@@ -55,8 +54,7 @@ def performPCA(n, df):
 	pca = PCA(n_components=n)
 	pca.fit(df)
 	df_tr = pca.transform(df)
-	pca_components = pca.components_
-	return (pca, df_tr, pca_components)
+	return (pca, df_tr)
 
 # create arrays for coloring PCA plots
 def makeColors(df):
@@ -94,6 +92,15 @@ def plotPCA3D(df, df_index, num_movies, titles, col):
 	plt.ylabel('PCA Axis 1')
 	plt.show()
 
+# Scree plot
+def scree(pca):
+	variances = pca.explained_variance_ratio_
+	fig = plt.figure()
+	plt.plot(variances)
+	plt.xlabel('Principal component')
+	plt.ylabel('Percent of total variance explained')
+	plt.show()
+
 ##################################################
 ##########              MAIN            ##########
 ##################################################
@@ -105,9 +112,13 @@ if __name__ == "__main__":
 	min_max_scaler = preprocessing.MinMaxScaler()
 	movies_scaled = scale(movies, min_max_scaler)
 	colors = makeColors(movies)
+	N_PCA = movies.shape[1]
 
 	# perform PCA
-	pca, movies_tr, axes = performPCA(N_PCA, movies_scaled)
+	pca, movies_tr = performPCA(N_PCA, movies_scaled)
+
+	# scree plot
+	scree(pca)
 
 	# plot PCA
 	if PLOT_PCA_2D:
