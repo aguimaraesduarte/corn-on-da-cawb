@@ -16,7 +16,7 @@ from mpl_toolkits.mplot3d import Axes3D
 INPUT_FILE = "movie_metadata.csv" #--do not change
 AXIS0_PCA = 0 #--{0, 1, 2}
 AXIS1_PCA = 1 #--{0, 1, 2} different from AXIS0_PCA
-NUM_MOVIES_PCA = 150 #--keep positive
+NUM_MOVIES_PCA = 500 #--keep positive
 COLOR = 0 #--0: gross, 1: year, 2: director_facebook_likes, 3: num_critic_for_reviews
 PLOT_PCA_2D = True #--{True, False}
 PLOT_PCA_3D = True #--{True, False}
@@ -101,6 +101,18 @@ def scree(pca):
 	plt.ylabel('Percent of total variance explained')
 	plt.show()
 
+# Cumulative scree plot
+def scree_cum(pca):
+	variances = pca.explained_variance_ratio_
+	variances_cum = [variances[0]]
+	for i in range(1, len(variances)):
+		variances_cum.append(variances_cum[i-1]+variances[i])
+	fig = plt.figure()
+	plt.plot(variances_cum)
+	plt.xlabel('Principal component')
+	plt.ylabel('Cumulative percent of total variance explained')
+	plt.show()
+
 ##################################################
 ##########              MAIN            ##########
 ##################################################
@@ -117,8 +129,9 @@ if __name__ == "__main__":
 	# perform PCA
 	pca, movies_tr = performPCA(N_PCA, movies_scaled)
 
-	# scree plot
+	# scree plots
 	scree(pca)
+	scree_cum(pca)
 
 	# plot PCA
 	if PLOT_PCA_2D:
