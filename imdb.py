@@ -1,7 +1,11 @@
-import BeautifulSoup
+"""
+This script scrapes all available movie data from IMDB 5000 and writes to a txt file. Each movie will be
+written to the file as an Element. The Element tag can then be removed for further processing if desired.
+
+"""
+
 import json
-import random
-import time
+import pandas as pd
 import urllib
 import urllib2
 import untangle
@@ -20,32 +24,6 @@ XML_QUERY = {
 }
 
 URL = "http://www.omdbapi.com/?"
-
-#
-# def fetch(url, delay=(2, 5)):
-#     """
-#     Simulate human random clicking 2.5 seconds then fetch URL.
-#     Returns the actual page source fetched and the HTML object.
-#     """
-#
-#     def get_data_from_url(url):
-#         # header/value pair is User - Agent: Resistance is futile
-#         headers = {'Agent': 'Resistance is futile'}
-#         try:
-#             req = urllib2.Request(url, headers=headers)
-#             data = urllib2.urlopen(req)
-#         except ValueError as e:
-#             print str(e)
-#             return '', BeautifulSoup('', 'html.parser')
-#         except:
-#             return '', BeautifulSoup('', "html.parser")
-#         data = data.read()
-#         return data
-#
-#     time.sleep(random.randint(delay[0], delay[1])) # wait random seconds
-#     pagedata = get_data_from_url(url)
-#     html = BeautifulSoup(pagedata, "html.parser")
-#     return pagedata, html
 
 
 def get_single_factor(title, factor):
@@ -73,7 +51,6 @@ def gimme_xml(response):
 def read_page(url, opts):
     # urlencode converts the dictionary to a list of x=y pairs
     query_url = url + urllib.urlencode(opts)
-    # time.sleep(random.randint(1, 2))
     return urllib2.urlopen(query_url)
 
 
@@ -81,4 +58,19 @@ def read_page_from_title(title, url=URL, opts=XML_QUERY):
     opts['t'] = title
     return read_page(url, opts)
 
+
+if __name__ == '__main__':
+
+    movies = pd.read_table("movie_metadata.csv", sep=",")
+    movies['movie_title'] = movies['movie_title'].apply(lambda x: x.replace('\xc2\xa0', ''))
+
+    # we only want information on the IMDB 5000 movies, so we get a list of those titles to retrieve.
+    titles = list(movies['movie_title'])
+    for i, title in enumerate(titles):
+        imdb_response = read_page_from_title(title)
+        tree = gimme_xml(imdb_response)
+        fd = open('imdb_elements.txt', 'a')
+        data = str(tree.children[0].children[0]) + '\n'
+        # uncomment this line to write to the file
+        # fd.write(data)
 
