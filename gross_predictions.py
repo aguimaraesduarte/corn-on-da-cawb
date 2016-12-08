@@ -2,7 +2,6 @@
 This script runs three iterations of a Random Forest Regressor to predict gross revenue of the movies int he IMDB
 movie data.
 
-
 """
 
 import pandas as pd
@@ -95,9 +94,11 @@ def director_imdb_score(input_list):
 
 def clean_data(df):
     df['movie_title'] = df['movie_title'].apply(lambda x: x.replace('\xc2\xa0', ''))
+    df = df.drop_duplicates()
     df = df[df['type'] == 'movie']
     df = df[df['country'] == 'USA']
     df = df[pd.notnull(df['gross'])]
+    df = df[df['gross'] > 0]
     return df
 
 
@@ -119,7 +120,7 @@ def get_top_n_features(forest_model, predictor_list, n):
     feature_scores = forest_model.feature_importances_
     tuple_list = zip(predictor_list, feature_scores)
     tuple_list = sorted(tuple_list, key=lambda tup: tup[1], reverse=True)
-    tuple_list = tuple_list[1:n]
+    tuple_list = tuple_list[0:n]
     return tuple_list
 
 
@@ -209,10 +210,11 @@ def run_models_print_results(model_list, x_train, x_test, y_train, y_test, predi
     for name, model in model_list:
         model.fit(x_train, y_train)
         predictions = model.predict(x_test)
-        print '%s Test MSE: %.2f' % (name, mean_squared_error(predictions, y_test))
+        print '%s Test RMSE: %.2f' % (name, np.sqrt(mean_squared_error(predictions, y_test)))
         r2 = model.score(x_test, y_test)
         print '%s R^2 Test: %.2f' % (name, r2)
-        print 'The top 5 features are: %s' % get_top_n_features(model, predictor_list, 5)
+        n = 10
+        print 'The top %s features are: %s' % (n, get_top_n_features(model, predictor_list, n))
         plot_predicted_observed(y_test, predictions)
 
 
@@ -245,6 +247,7 @@ if __name__ == '__main__':
     movies = pd.read_table("movie_data_plus.csv", sep=",")
     movies = clean_data(movies)
     movies = impute(movies)
+    movies_for_rating_group_by = movies
     movies = add_features(movies)
 
     """
@@ -290,7 +293,7 @@ if __name__ == '__main__':
     models = [('Random Forest', RandomForestRegressor(max_depth=best_depth))]
     print "\nThe first model is fit with all predictors over all observations: "
     print "The best tree depth is at: %s" % best_depth
-    print "Variance of gross over this data set: %s" % np.var(movies['gross'])
+    print "Standard Deviation of gross in the test set: %s" % np.sqrt(np.var(test_y))
     run_models_print_results(models, train_x, test_x, train_y, test_y, predictors)
 
     """
@@ -330,18 +333,16 @@ if __name__ == '__main__':
     models = [('Random Forest', RandomForestRegressor(max_depth=best_depth))]
     print "\nThe second model is fit with only the predictors that are known prior to release. "
     print "The best tree depth is at: %s" % best_depth
-    print "Variance of gross over this data set: %s" % np.var(movies['gross'])
+    print "Standard Deviation of gross in the test set: %s" % np.sqrt(np.var(test_y))
     run_models_print_results(models, train_x, test_x, train_y, test_y, predictors)
 
     """
     The third model is an extension of the second. In this model though, we remove all movies released prior
-    to 2010. We remove the outlier movies with gross revenue above $59,000,000 (the rare blockbusters). $59,000,000
-    is near the 75th percentile. That is, our data has a left skew.
+    to 2010.
 
     """
 
     movies = movies[movies['title_year'] > 2010]
-    movies = movies[movies['gross'] < 59000000]
 
     predictors = [
         'cast_total_facebook_likes',
@@ -372,9 +373,9 @@ if __name__ == '__main__':
     train_x, test_x, train_y, test_y = split_test_train(movies, predictors, response, random_state=None, test_size=0.3)
     best_depth, best_oob = get_best_tree_depth(train_x, train_y, 10, 30, 15)
     models = [('Random Forest', RandomForestRegressor(max_depth=best_depth))]
-    print "\nThe third model is fit with only the predictors that are known prior to release on reduced data set. "
+    print "\nThe third model is fit with only the predictors that are known prior to release on movies aftter 2010. "
     print "The best tree depth is at: %s" % best_depth
-    print "Variance of gross over this data set: %s" % np.var(movies['gross'])
+    print "Standard Deviation of gross in the test set: %s" % np.sqrt(np.var(movies['gross']))
     run_models_print_results(models, train_x, test_x, train_y, test_y, predictors)
 
     """
@@ -388,6 +389,19 @@ if __name__ == '__main__':
 
     plt.show()
 
+    """
+    The R rating is an important predictor in the first model. Do R rated movies tend to make more or less money?
 
+    """
 
+    means_by_rating = movies_for_rating_group_by.groupby('content_rating').mean()
+    print "\nHere are the mean gross revenues by content rating."
+    print means_by_rating[['title_year', 'gross']]
 
+    """
+    Release month is also a good predictor. How do the months stack up?
+    """
+
+    means_by_rating = movies_for_rating_group_by.groupby('release_month').mean()
+    print "\nHere are the mean gross revenues by release_month."
+    print means_by_rating[['budget', 'gross']]
