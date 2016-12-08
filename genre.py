@@ -242,65 +242,70 @@ keycounter = Counter()                                # counter for all keywords
 genrecounter = Counter()                              # counter for genre buckets
 rawgenrecounter = Counter()                           # counter for all raw genre tags
 
+titlelist = []
+
 with open('movie_metadata.csv', 'r') as movies:
     moviereader = csv.reader(movies)
     i = 0
     for line in moviereader:
         i += 1
         title = unicode(line[11], encoding = 'utf-8').replace(u'\xa0', ' ').rstrip()
-        genres = line[9]
-        rawgenrecounter[genres] += 1
-        keywords = line[16]
-        if i > 1:
-            '''
-            Bucket movie genres based on the list of genres given in the raw data
-            '''
-            genreset = set(genres.split('|'))
-            if len(genreset) == 1:
-                if len(set(['Documentary', 'Biography','Game-Show','Reality-TV','News']) & genreset) > 0:
-                    genre = 'True'
-                elif len(set(['Crime','Mystery','Thriller','Film-Noir']) & genreset) > 0:
-                    genre = 'Thriller'
-                elif len(set(['Sci-Fi','Fantasy','Adventure','Animation']) & genreset) > 0:
-                    genre = 'Fantasy'
-                elif 'Horror' in genreset:
-                    genre = 'Horror'
-                elif len(set(['Action', 'Western', 'War']) & genreset) > 0:
-                    genre = 'Action'
-                elif len(set(['Drama', 'Romance', 'History']) & genreset) > 0:
-                    genre = 'Drama'
-                elif len(set(['Comedy', 'Music', 'Musical', 'Family']) & genreset) > 0:
-                    genre = 'Comedy'
+        if title in titlelist:
+            pass
+        else:
+            genres = line[9]
+            rawgenrecounter[genres] += 1
+            keywords = line[16]
+            if i > 1:
+                '''
+                Bucket movie genres based on the list of genres given in the raw data
+                '''
+                genreset = set(genres.split('|'))
+                if len(genreset) == 1:
+                    if len(set(['Documentary', 'Biography','Game-Show','Reality-TV','News']) & genreset) > 0:
+                        genre = 'True'
+                    elif len(set(['Crime','Mystery','Thriller','Film-Noir']) & genreset) > 0:
+                        genre = 'Thriller'
+                    elif len(set(['Sci-Fi','Fantasy','Adventure','Animation']) & genreset) > 0:
+                        genre = 'Fantasy'
+                    elif 'Horror' in genreset:
+                        genre = 'Horror'
+                    elif len(set(['Action', 'Western', 'War']) & genreset) > 0:
+                        genre = 'Action'
+                    elif len(set(['Drama', 'Romance', 'History']) & genreset) > 0:
+                        genre = 'Drama'
+                    elif len(set(['Comedy', 'Music', 'Musical', 'Family']) & genreset) > 0:
+                        genre = 'Comedy'
+                    else:
+                        genre = 'Unknown'
                 else:
-                    genre = 'Unknown'
-            else:
-                if len(set(['Documentary', 'Biography','Game-Show','Reality-TV','News']) & genreset) > 0:
-                    genre = 'True'
-                elif 'Horror' in genreset:
-                    genre = 'Horror'
-                elif len(set(['Sci-Fi','Fantasy']) & genreset) > 0:
-                    genre = 'Fantasy'
-                elif len(set(['Western', 'War']) & genreset) > 0:
-                    genre = 'Action'
-                elif 'Thriller' in genreset:
-                    genre = 'Thriller'
-                elif 'Action' in genreset:
-                    genre = 'Action'
-                elif len(set(['Animation', 'Family']) & genreset) > 0:
-                    genre = 'Comedy'
-                elif 'Drama' in genreset and 'Comedy' not in genreset:
-                    genre = 'Drama'
-                elif 'Comedy' in genreset and 'Drama' not in genreset:
-                    genre = 'Comedy'
-                elif len(set(['Drama','Romance', 'History']) & genreset) > 0:
-                    genre = 'Drama'
-                else:
-                    genre = 'Other'
-            genrecounter[genre] += 1
-            keylist = keywords.split('|')
-            movielist.append([title, genre, keylist, list(genreset)])
-            for key in keylist:
-                keycounter[key] += 1
+                    if len(set(['Documentary', 'Biography','Game-Show','Reality-TV','News']) & genreset) > 0:
+                        genre = 'True'
+                    elif 'Horror' in genreset:
+                        genre = 'Horror'
+                    elif len(set(['Sci-Fi','Fantasy']) & genreset) > 0:
+                        genre = 'Fantasy'
+                    elif len(set(['Western', 'War']) & genreset) > 0:
+                        genre = 'Action'
+                    elif 'Thriller' in genreset:
+                        genre = 'Thriller'
+                    elif 'Action' in genreset:
+                        genre = 'Action'
+                    elif len(set(['Animation', 'Family']) & genreset) > 0:
+                        genre = 'Comedy'
+                    elif 'Drama' in genreset and 'Comedy' not in genreset:
+                        genre = 'Drama'
+                    elif 'Comedy' in genreset and 'Drama' not in genreset:
+                        genre = 'Comedy'
+                    elif len(set(['Drama','Romance', 'History']) & genreset) > 0:
+                        genre = 'Drama'
+                    else:
+                        genre = 'Other'
+                genrecounter[genre] += 1
+                keylist = keywords.split('|')
+                movielist.append([title, genre, keylist, list(genreset)])
+                for key in keylist:
+                    keycounter[key] += 1
 
 # print genrecounter
 # print rawgenrecounter
@@ -332,7 +337,7 @@ titles_train, X_train, Y_train = extract(movielist, keyfeat)
 end = time.time()
 
 print 'Feature extraction: ' + str(end - start) + ' seconds'
-
+'''
 
 failrates = []
 
@@ -439,6 +444,9 @@ elif best == 5:
 else:
     print 'Yikes'
 
+metavalid = 0
+'''
+
 train = movielist[:-len(movielist)/10]           # first 9/10 of the shuffled list for training
 test = movielist[-len(movielist)/10:]            # last 1/10 for testing
 
@@ -450,9 +458,12 @@ logreg.fit(X_train, Y_train)
 logpred = logreg.predict(X_test)
 
 metavalid = 0
+acc = 0
 
 for i in range(len(Y_test)):
     print titles_test[i] + ' - Actual: ' + Y_test[i] + ' | Predicted: ' + logpred[i]
+    if Y_test[i] == logpred[i]:
+        acc += 1
     print 'Keywords:'
     for item in test[i][2]:
         print '\t' + item
@@ -461,6 +472,6 @@ for i in range(len(Y_test)):
         metavalid += 1
     print '\n-----------------------------------\n'
 
-print 'Exact match rate: ' + str(1- failrate)
+print 'Exact match rate: ' + str(float(acc)/len(Y_test))
 print 'Obscured prediction rate: ' + str(float(metavalid)/len(Y_test))           # predictions that did not match the bucket but did match a
                                                                                  # genre in the original description
