@@ -5,7 +5,7 @@ the scripts and performing the analyses involved in the ML1 final
 project for the group Corn-on-da-Cawb. 
 
 ## Genre Prediction
-Simply run `genre.py` for genre prediction using plot keywords. Output is printed to the console (Movie title, Actual genre bucket, Predicted genre bucket, List of keywords). Runs LDA only as it's consistently the best model.
+Simply run `genre.py` for genre prediction using plot keywords. Output is printed to the console (Movie title, Actual genre bucket, Predicted genre bucket, List of keywords). Runs LDA only as it's consistently the best model. Other models can be run by uncommenting them in the code.
 
 Simply run `genre_plot.py` for genre prediction using plot description. Output is printed to the console (Movie title, Actual genre bucket, Predicted genre bucket, List of keywords). Runs KNN, Logistic regression, LDA, QDA, Decision tree classification, Random forest classification.
 
