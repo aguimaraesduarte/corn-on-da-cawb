@@ -23,7 +23,7 @@ Simply run `pca.py`. Output is printed as plots:
 Parameters can be tuned inside the `pca.py` file as such:
 
 - **INPUT_FILE = "movie_metadata.csv"** Input file, should not be changed
-- **N_PCA = 3** Number of principal components to keep
+- **N_PCA = 3** Number of principal components to keep (should not be higher than 16)
 - **AXIS0_PCA = 0** X-axis for PCA plot (2D). One of {0, 1, 2}
 - **AXIS1_PCA = 1** Y-axis for PCA plot (2D). One of {0, 1, 2}, different from above
 - **NUM_MOVIES_PCA = 150** Number of movies to plot in PCA (clipped to max_movies)
