@@ -505,14 +505,12 @@ if __name__ == '__main__':
 
     """
 
-    plt.show()
-
     """
     The R rating is an important predictor in the first model. Do R rated movies tend to make more or less money?
 
     """
 
-    means_by_rating = movies_for_rating_group_by.groupby('content_rating').mean()
+    means_by_rating = movies_for_rating_group_by.groupby('content_rating').count()
     print "\nHere are the mean gross revenues by content rating."
     print means_by_rating[['title_year', 'gross']]
 
@@ -523,3 +521,51 @@ if __name__ == '__main__':
     means_by_rating = movies_for_rating_group_by.groupby('release_month').mean()
     print "\nHere are the mean gross revenues by release_month."
     print means_by_rating[['budget', 'gross']]
+
+    """
+    The fourth model mimics the second model except we log transform the revenue and budget variables. We see no
+    improvement in the accuracy of the model.
+
+    """
+
+    predictors = [
+        'cast_total_facebook_likes',
+        'title_year',
+        'director_facebook_likes',
+        'duration',
+        'budget',
+        'content_rating_Missing',
+        'content_rating_NC-17',
+        'content_rating_Not Rated',
+        'content_rating_PG',
+        'content_rating_R',
+        'content_rating_PG-13',
+        'clean_genre_Action',
+        'clean_genre_Comedy',
+        'clean_genre_Drama',
+        'clean_genre_Fantasy',
+        'clean_genre_Horror',
+        'clean_genre_Thriller',
+        'clean_genre_True',
+        'release_month',
+        'actor_imdb_score_1',
+        'actor_imdb_score_2',
+        'actor_imdb_score',
+        'director_imdb_score'
+    ]
+
+    train_x, test_x, train_y, test_y = split_test_train(movies, predictors, response, random_state=None, test_size=0.3)
+
+    train_x['budget'] = np.log(train_x['budget'])
+    test_x['budget'] = np.log(test_x['budget'])
+    test_y = np.log(test_y)
+    train_y = np.log(train_y)
+
+    best_depth, best_oob = get_best_tree_depth(train_x, train_y, 10, 30, 15)
+    models = [('Random Forest', RandomForestRegressor(max_depth=best_depth))]
+    print "\nThe fourth model is the same as the second but with a log transform on revenue."
+    print "The best tree depth is at: %s" % np.exp(best_depth)
+    print "Standard Deviation of gross in the test set: %s" % np.exp(np.sqrt(np.var(test_y)))
+    run_models_print_results(models, train_x, test_x, train_y, test_y, predictors)
+
+    plt.show()
