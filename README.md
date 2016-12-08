@@ -13,7 +13,23 @@ Simply run `gross_predictions.py` all output is printed to the console,
 and some scatter plots will appear.
 
 ## Clustering
+Simply run `pca.py`. Output is printed as plots:
 
+- scree plot
+- cumulative scree plot
+- PCA plot (2D)
+- PCA plot (3D)
+
+Parameters can be tuned inside the `pca.py` file as such:
+
+- **INPUT_FILE = "movie_metadata.csv"** Input file, should not be changed
+- **N_PCA = 3** Number of principal components to keep
+- **AXIS0_PCA = 0** X-axis for PCA plot (2D). One of {0, 1, 2}
+- **AXIS1_PCA = 1** Y-axis for PCA plot (2D). One of {0, 1, 2}, different from above
+- **NUM_MOVIES_PCA = 150** Number of movies to plot in PCA (clipped to max_movies)
+- **COLOR = 1** Coloring of points in PCA plot {0: gross, 1: year, 2: director_facebook_likes, 3: num_critic_for_reviews}
+- **PLOT_PCA_2D = True** One of {True, False}
+- **PLOT_PCA_3D = True** One of {True, False}
 
 ## IMDB Scraping
 
