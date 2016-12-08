@@ -131,8 +131,9 @@ if __name__ == "__main__":
 	pca, movies_tr = performPCA(N_PCA, movies_scaled)
 
 	# scree plots
-	scree(pca)
-	scree_cum(pca)
+	pca_tot, movies_tr_tot = performPCA(movies.shape[1], movies_scaled)
+	scree(pca_tot)
+	scree_cum(pca_tot)
 
 	# plot PCA
 	if PLOT_PCA_2D:
