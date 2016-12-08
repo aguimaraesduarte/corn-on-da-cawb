@@ -16,10 +16,11 @@ from mpl_toolkits.mplot3d import Axes3D
 INPUT_FILE = "movie_metadata.csv" #--do not change
 AXIS0_PCA = 0 #--{0, 1, 2}
 AXIS1_PCA = 1 #--{0, 1, 2} different from AXIS0_PCA
-NUM_MOVIES_PCA = 10000 #--keep positive
+NUM_MOVIES_PCA = 150 #--keep positive
 COLOR = 1 #--0: gross, 1: year, 2: director_facebook_likes, 3: num_critic_for_reviews
 PLOT_PCA_2D = True #--{True, False}
 PLOT_PCA_3D = True #--{True, False}
+N_PCA = 3 #--do not change
 
 ######################################
 ##       FUNCTION DEFINITIONS       ##
@@ -125,7 +126,6 @@ if __name__ == "__main__":
 	min_max_scaler = preprocessing.MinMaxScaler()
 	movies_scaled = scale(movies, min_max_scaler)
 	colors = makeColors(movies)
-	N_PCA = movies.shape[1]
 
 	# perform PCA
 	pca, movies_tr = performPCA(N_PCA, movies_scaled)
