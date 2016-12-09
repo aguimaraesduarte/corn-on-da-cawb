@@ -1,4 +1,4 @@
-# Readme For Corn-on-da-Cawb ML-1 Project
+# IMDB 5000 Movie Dataset
 
 This file gives order of flow and general instructions for runnging
 the scripts and performing the analyses involved in the ML1 final 
